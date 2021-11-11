@@ -21,8 +21,8 @@ Options:
     --P=<penetration>          Penetration parameter [default: 1]
     --S=<stiffness>            Stiffness of radiative-convective boundary [default: 1e2]
 
-    --nz=<nz>                  Vertical resolution   [default: 128]
-    --nx=<nx>                  Horizontal (x) resolution [default: 64]
+    --nz=<nz>                  Vertical resolution   [default: 256]
+    --nx=<nx>                  Horizontal (x) resolution [default: 256]
     --RK222                    Use RK222 timestepper (default: RK443)
     --SBDF2                    Use SBDF2 timestepper (default: RK443)
     --safety=<s>               CFL safety factor [default: 0.75]
@@ -145,7 +145,7 @@ def set_equations(problem):
 #                   (args['--stress_free'], "right(ωy) = 0", "True"),
                    (True, " left(w) = 0", "True"),
                    (True, "right(w) = 0", kx_n0),
-                   (True, "right(h1) = 0", kx_0),
+                   (True, "left(h1) = 0", kx_0),
                  )
     for solve, bc, cond in boundaries:
         if solve: 
@@ -265,14 +265,13 @@ def run_cartesian_instability(args):
     mu = 1e-3
 
     T_ad_z = -1
-    T_rad_z = T_ad_z*(1 + (P*(1+mu))**(-1))
+    T_rad_z = T_ad_z*(1 + (P*(1+mu))**(-1))**(-1)
     Ma2 = (1/S)*(1-(1/(1+1/(P*(1+mu)))))
 
     Q_mag = Ma2**(3/2)
     t_heat = Q_mag**(-1/3)
-    epsilon = Ma2 * S
     logger.info("heating timescale: {:8.3e}".format(t_heat))
-    logger.info("epsilon: {:8.3e}".format(epsilon))
+    logger.info("T_ad_z, T_rad_z: {:8.3e}, {:8.3e}".format(T_ad_z, T_rad_z))
 
 
     gamma = 5/3
@@ -282,7 +281,6 @@ def run_cartesian_instability(args):
     m_ad = 1/(gamma-1)
     g = Cp #hydrostatic equilibrium for a grad s = 0 background: grad h + T grad S + grad phi = 0. => grad h = - grad phi
     T_ad_z = -g/Cp
-    m_rz = m_ad + epsilon
 
     Re0   *= t_heat
     Pe0   = Pr*Re0
@@ -346,8 +344,10 @@ def run_cartesian_instability(args):
 
 
     grad_ln_T0['g'] = T0_z['g']/T0['g']
-    s0_z['g'] = (-g - Cp*T0_z['g'])/T0['g']
-    grad_ln_rho0['g'] = ((1/gamma)*grad_ln_T0['g'] - s0_z['g']/Cp) * (gamma / (gamma-1))
+    grad_ln_rho0['g'] = (-g - T0_z['g'])/T0['g']
+    s0_z['g'] = (1/gamma)*(grad_ln_T0['g'] - (gamma-1)*grad_ln_rho0['g'])
+#    s0_z['g'] = (g + Cp*T0_z['g'])/T0['g']
+#    grad_ln_rho0['g'] = ((1/gamma)*grad_ln_T0['g'] - s0_z['g']/Cp) * (gamma / (gamma-1))
     grad_ln_rho0.antidifferentiate('z', ('right', 0), out=ln_rho0)
     rho0['g'] = np.exp(ln_rho0['g'])
 
@@ -358,18 +358,18 @@ def run_cartesian_instability(args):
 
     flux = Q.antidifferentiate('z', ('right', F_top))
 
-    plt.figure()
-    plt.plot(z_de[0,:], T0_z['g'][0,:])
-    plt.ylabel('T0_z')
-
-    plt.figure()
-    plt.plot(z_de[0,:], s0_z['g'][0,:])
-    plt.ylabel('s0_z')
-
-    plt.figure()
-    plt.plot(z_de[0,:], rho0['g'][0,:])
-    plt.ylabel('rho0')
-    plt.show()
+#    plt.figure()
+#    plt.plot(z_de[0,:], T0_z['g'][0,:])
+#    plt.ylabel('T0_z')
+#
+#    plt.figure()
+#    plt.plot(z_de[0,:], s0_z['g'][0,:])
+#    plt.ylabel('s0_z')
+#
+#    plt.figure()
+#    plt.plot(z_de[0,:], rho0['g'][0,:])
+#    plt.ylabel('rho0')
+#    plt.show()
 
     #Plug in default parameters
     problem.parameters['g']      = g
@@ -463,7 +463,7 @@ def run_cartesian_instability(args):
                     for f in solver.state.fields:
                         f.require_grid_space()
 
-                if effective_iter % 1 == 0:
+                if effective_iter % 10 == 0:
                     Re_avg = flow.grid_average('Re')
 
                     log_string =  'Iteration: {:7d}, '.format(solver.iteration)
