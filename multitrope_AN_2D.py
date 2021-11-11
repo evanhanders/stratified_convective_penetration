@@ -17,9 +17,9 @@ Options:
     --Re=<Reynolds>            Freefall reynolds number [default: 1e2]
     --Pr=<Prandtl>             Prandtl number = nu/kappa [default: 0.5]
     --nrho=<n>                 Depth of domain [default: 1]
-    --aspect=<aspect>          Aspect ratio of domain [default: 4]
-    --Ma2=<Ma2>                Mach^2 of convection [default: 1e-2]
-    --S=<stiffness>            Stiffness of radiative-convective boundary [default: 1e1]
+    --aspect=<aspect>          Aspect ratio of domain [default: 2]
+    --P=<penetration>          Penetration parameter [default: 1]
+    --S=<stiffness>            Stiffness of radiative-convective boundary [default: 1e2]
 
     --nz=<nz>                  Vertical resolution   [default: 128]
     --nx=<nx>                  Horizontal (x) resolution [default: 64]
@@ -243,7 +243,7 @@ def run_cartesian_instability(args):
     #############################################################################################
     ### 1. Read in command-line args, set up data directory
     data_dir = args['--root_dir'] + '/' + sys.argv[0].split('.py')[0]
-    data_dir += "_Re{}_nrho{}_Pr{}_Ma2{}_S{}_a{}_{}x{}".format(args['--Re'], args['--nrho'], args['--Pr'], args['--Ma2'], args['--S'], args['--aspect'], args['--nx'], args['--nz'])
+    data_dir += "_Re{}_nrho{}_Pr{}_P{}_S{}_a{}_{}x{}".format(args['--Re'], args['--nrho'], args['--Pr'], args['--P'], args['--S'], args['--aspect'], args['--nx'], args['--nz'])
     if args['--label'] is not None:
         data_dir += "_{}".format(args['--label'])
     data_dir += '/'
@@ -260,8 +260,13 @@ def run_cartesian_instability(args):
     Re0 = float(args['--Re'])
     Pr = float(args['--Pr'])
     nrho = float(args['--nrho'])
-    Ma2 = float(args['--Ma2']) #timescale ~ 1/Q^{1/3}, Ma ~ 1/t, so Q ~ (Ma^2)^{3/2} ~ Ma^3
-    S   = float(args['--S'])
+    P = float(args['--P']) #timescale ~ 1/Q^{1/3}, Ma ~ 1/t, so Q ~ (Ma^2)^{3/2} ~ Ma^3
+    S = float(args['--S'])
+    mu = 1e-3
+
+    T_ad_z = -1
+    T_rad_z = T_ad_z*(1 + (P*(1+mu))**(-1))
+    Ma2 = (1/S)*(1-(1/(1+1/(P*(1+mu)))))
 
     Q_mag = Ma2**(3/2)
     t_heat = Q_mag**(-1/3)
@@ -292,7 +297,7 @@ def run_cartesian_instability(args):
 
     F_conv = Q_mag*0.1*Lz
     F_top  = 1e-3*F_conv
-    T_rad_z = (1/(1-epsilon*(gamma-1)/gamma))*T_ad_z
+#    T_rad_z = (1/(1-epsilon*(gamma-1)/gamma))*T_ad_z
     k_cz = F_top
     k_rz = -(F_top + F_conv)/T_rad_z
 
