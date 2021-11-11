@@ -120,8 +120,8 @@ def set_equations(problem):
                   (True, "True", "u_z - dz(u)   = 0"),
                   (True, "True",  "w_z - dz(w)   = 0"),
                   (True, "True", "dx(u) + dy(v) + w_z + w*grad_ln_rho0 = 0"), #Anelastic
-                  (True, "True", "dt(u) - (μ/rho0)*visc_div_stress_x  + dx(h1) - T0*dx(s1) = v*ωz - w*ωy "), #momentum-x
-                  (True, "True", "dt(w) - (μ/rho0)*visc_div_stress_z  + h1_z   - T0*dz(s1) = u*ωy - v*ωx "), #momentum-z
+                  (True, "True", "dt(u) - (μ/rho0)*visc_div_stress_x  + dx(h1) - T0*dx(s1) = -UdotGrad(u, u_z)  "), #momentum-x
+                  (True, "True", "dt(w) - (μ/rho0)*visc_div_stress_z  + h1_z   - T0*dz(s1) = -UdotGrad(w, w_z)  "), #momentum-z
                   (True, kx_n0, "dt(s1) - (κ/rho0)*Lap(T1, T1_z) = -UdotGrad(s1, dz(s1)) - w*s0_z"), #energy eqn
                   (True, kx_0,  "dt(s1) - (1/rho0)*dz(k0*T1_z)   = -UdotGrad(s1, dz(s1)) - w*s0_z + (Q + dz(k0*T0_z))"), #energy eqn
                 )
