@@ -120,7 +120,7 @@ def set_equations(problem):
                   (True, "True", "u_z - dz(u)   = 0"),
                   (True, "True", "w_z - dz(w)   = 0"),
                   (True, "True", "dt(ln_rho1) + Div_u + w*grad_ln_rho0 = -UdotGrad(ln_rho1, dz(ln_rho1))"), #Continuity
-                  (True, "True", "dt(u) - visc_L_x  + R*( dx(T1)                                   ) = -UdotGrad(u, u_z) - R*T1*dx(ln_rho1) + visc_R_x "), #momentum-x
+                  (True, "True", "dt(u) - visc_L_x  + R*( dx(T1) + T0*dx(ln_rho1)                  ) = -UdotGrad(u, u_z) - R*T1*dx(ln_rho1) + visc_R_x "), #momentum-x
                   (True, "True", "dt(w) - visc_L_z  + R*( T1_z  + T1*grad_ln_rho0 + T0*dz(ln_rho1) ) = -UdotGrad(w, w_z) - R*T1*dz(ln_rho1) + visc_R_z "), #momentum-z
                   (True, kx_n0, "dt(T1) + w*T0_z + (γ-1)*T0*Div_u - diff_L_kn0 = -UdotGrad(T1, T1_z) - (γ-1)*T1*Div_u + visc_heat + diff_R_kn0"), #energy eqn
                   (True, kx_0,  "dt(T1) + w*T0_z + (γ-1)*T0*Div_u - diff_L_k0  = -UdotGrad(T1, T1_z) - (γ-1)*T1*Div_u + visc_heat + diff_R_k0 "), #energy eqn
@@ -205,6 +205,14 @@ def set_subs(problem):
     problem.substitutions['grad_rad']  = '(flux/(R*k0*g))'
     problem.substitutions['grad_ad']   = '((γ-1)/γ)'
 
+    problem.substitutions['phi']    = '(-g*z)'
+    problem.substitutions['F_cond'] = '(-k0*T_z)'
+    problem.substitutions['F_enth'] = '( rho_full * w * ( Cp * T ) )'
+    problem.substitutions['F_KE']   = '( rho_full * w * ( vel_rms2 / 2 ) )'
+    problem.substitutions['F_PE']   = '( rho_full * w * phi )'
+    problem.substitutions['F_visc'] = '( - μ * ( u*σxz + v*σyz + w*σzz ) )'
+    problem.substitutions['F_conv'] = '( F_enth + F_KE + F_PE + F_visc )'
+    problem.substitutions['F_tot']  = '( F_cond + F_conv )'
 
     return problem
 
@@ -235,6 +243,13 @@ def initialize_output(solver, data_dir, mode='overwrite', output_dt=2, iter=np.i
     profiles.add_task("plane_avg(grad)", name="grad")
     profiles.add_task("plane_avg(grad_ad*ones)", name="grad_ad")
     profiles.add_task("plane_avg(grad_rad)", name="grad_rad")
+    profiles.add_task("plane_avg(F_cond)", name="F_cond")
+    profiles.add_task("plane_avg(F_enth)", name="F_enth")
+    profiles.add_task("plane_avg(F_KE)", name="F_KE")
+    profiles.add_task("plane_avg(F_PE)", name="F_PE")
+    profiles.add_task("plane_avg(F_visc)", name="F_visc")
+    profiles.add_task("plane_avg(F_conv)", name="F_conv")
+    profiles.add_task("plane_avg(F_tot)", name="F_tot")
     analysis_tasks['profiles'] = profiles
 
     scalars = solver.evaluator.add_file_handler(data_dir+'scalars', sim_dt=output_dt*5, max_writes=np.inf, mode=mode)
