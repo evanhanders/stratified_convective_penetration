@@ -15,13 +15,13 @@ Usage:
 
 Options:
     --Re=<Reynolds>            Freefall reynolds number [default: 5e1]
-    --Pr=<Prandtl>             Prandtl number = nu/kappa [default: 0.5]
+    --Pr=<Prandtl>             Prandtl number = nu/kappa [default: 1]
     --nrho=<n>                 Depth of domain [default: 1]
     --aspect=<aspect>          Aspect ratio of domain [default: 4]
     --Ma2=<Ma2>                Mach^2 of convection [default: 1e-2]
 
     --nz=<nz>                  Vertical resolution   [default: 64]
-    --nx=<nx>                  Horizontal (x) resolution [default: 64]
+    --nx=<nx>                  Horizontal (x) resolution [default: 128]
     --RK222                    Use RK222 timestepper (default: RK443)
     --SBDF2                    Use SBDF2 timestepper (default: RK443)
     --safety=<s>               CFL safety factor [default: 0.75]
@@ -174,6 +174,8 @@ def set_subs(problem):
     problem.substitutions['T_z']       = '(T0_z + T1_z)'
     problem.substitutions['s1']        = '(Cv*log(1+T1/T0) - ln_rho1)'
     problem.substitutions['s0']        = '(Cv*log(T0) - ln_rho0)'
+    problem.substitutions['dz_lnT']    = '(T_z/T)'
+    problem.substitutions['dz_lnP']    = '(dz_lnT + grad_ln_rho0 + dz(ln_rho1))'
 
     problem.substitutions['Div_u'] = '(dx(u) + dy(v) + w_z)'
     problem.substitutions["σxx"] = "(2*dx(u) - 2/3*Div_u)"
@@ -198,6 +200,10 @@ def set_subs(problem):
     problem.substitutions['diff_R_k0']  = '((1/(rho_full*Cv))*(Q + dz(k0*T0_z) + dz(k0*T1_z)) - diff_L_k0)'
 
     problem.substitutions['visc_heat'] = '((μ/(rho_full*Cv))*(dx(u)*σxx + dy(v)*σyy + w_z*σzz + σxy**2 + σxz**2 + σyz**2))'
+
+    problem.substitutions['grad']      = '(dz_lnT/dz_lnP)'
+    problem.substitutions['grad_rad']  = '(flux/(R*k0*g))'
+    problem.substitutions['grad_ad']   = '((γ-1)/γ)'
 
 
     return problem
@@ -226,6 +232,9 @@ def initialize_output(solver, data_dir, mode='overwrite', output_dt=2, iter=np.i
     profiles.add_task("plane_avg(KE)", name='KE')
     profiles.add_task("plane_avg(sqrt((v*ωz - w*ωy)**2 + (u*ωy - v*ωx)**2 + (w*ωx - u*ωz)**2))", name='advection')
     profiles.add_task("plane_avg(enstrophy)", name="enstrophy")
+    profiles.add_task("plane_avg(grad)", name="grad")
+    profiles.add_task("plane_avg(grad_ad*ones)", name="grad_ad")
+    profiles.add_task("plane_avg(grad_rad)", name="grad_rad")
     analysis_tasks['profiles'] = profiles
 
     scalars = solver.evaluator.add_file_handler(data_dir+'scalars', sim_dt=output_dt*5, max_writes=np.inf, mode=mode)
@@ -286,6 +295,8 @@ def run_cartesian_instability(args):
     z0    = Lz + 1
     delta = 0.05*Lz
 
+    k0_cz = 1/Pe0
+
 
 
     #Adjust to account for expected velocities. and larger m = 0 diffusivities.
@@ -317,6 +328,7 @@ def run_cartesian_instability(args):
     T0_zz = domain.new_field()
     Q = domain.new_field()
     k0 = domain.new_field()
+    flux = domain.new_field()
     for f in [ln_rho0, grad_ln_rho0, rho0, s0_z, T0, T0_z, T0_zz, Q, k0]:
         f.set_scales(domain.dealias)
     for f in [ln_rho0, grad_ln_rho0, T0, T0_z, k0, rho0]:
@@ -337,11 +349,16 @@ def run_cartesian_instability(args):
     T_ad_z = -g/Cp
 
     Q_func  = lambda z: zero_to_one(z, 0.7*Lz, delta)*one_to_zero(z, 0.9*Lz, delta)
+    neg_Q_func  = lambda z: -1*zero_to_one(z, 0.1*Lz, delta)*one_to_zero(z, 0.3*Lz, delta)
 
-    Q['g'] = -Q_mag*Q_func(z_de)
-    k0['g'] = 1/Pe0
+    Q['g'] = -Q_mag*(Q_func(z_de) + neg_Q_func(z_de))
+    k0['g'] = k0_cz
+    Q.antidifferentiate('z', ('right', k0_cz), out=flux)
 
     #Plug in default parameters
+    ones = domain.new_field()
+    ones['g'] = 1
+    problem.parameters['ones']   = ones
     problem.parameters['g']      = g
     problem.parameters['R']      = R
     problem.parameters['γ']      = gamma
@@ -361,6 +378,7 @@ def run_cartesian_instability(args):
     problem.parameters['Cp'] = Cp
     problem.parameters['Cv'] = Cv
     problem.parameters['T_ad_z'] = T_ad_z
+    problem.parameters['flux'] = flux
 
     problem = set_subs(problem)
     problem = set_equations(problem)
