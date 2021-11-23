@@ -14,11 +14,11 @@ Usage:
     polytrope_FC_2D.py <config> [options] 
 
 Options:
-    --Re=<Reynolds>            Freefall reynolds number [default: 5e1]
+    --Re=<Reynolds>            Freefall reynolds number [default: 3e2]
     --Pr=<Prandtl>             Prandtl number = nu/kappa [default: 1]
     --nrho=<n>                 Depth of domain [default: 1]
     --aspect=<aspect>          Aspect ratio of domain [default: 4]
-    --Ma2=<Ma2>                Mach^2 of convection [default: 1e-2]
+    --Ma2=<Ma2>                Mach^2 of convection [default: 1e-4]
 
     --nz=<nz>                  Vertical resolution   [default: 64]
     --nx=<nx>                  Horizontal (x) resolution [default: 128]
@@ -132,8 +132,10 @@ def set_equations(problem):
 
     boundaries = ( (True, " left(T1) = 0", "True"),
                    (True, "right(dz(T1)) = 0", "True"),
-                   (True, " left(ωy) = 0", "True"),
-                   (True, "right(ωy) = 0", "True"),
+                   (True, " left(u) = 0", "True"),
+                   (True, "right(u) = 0", "True"),
+#                   (True, " left(ωy) = 0", "True"),
+#                   (True, "right(ωy) = 0", "True"),
                    (True, " left(w) = 0", "True"),
                    (True, "right(w) = 0", "True"),
                  )
@@ -250,6 +252,7 @@ def initialize_output(solver, data_dir, mode='overwrite', output_dt=2, iter=np.i
     profiles.add_task("plane_avg(F_visc)", name="F_visc")
     profiles.add_task("plane_avg(F_conv)", name="F_conv")
     profiles.add_task("plane_avg(F_tot)", name="F_tot")
+    profiles.add_task("plane_avg(flux)", name="flux")
     analysis_tasks['profiles'] = profiles
 
     scalars = solver.evaluator.add_file_handler(data_dir+'scalars', sim_dt=output_dt*5, max_writes=np.inf, mode=mode)
