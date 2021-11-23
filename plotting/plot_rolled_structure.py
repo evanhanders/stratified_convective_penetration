@@ -39,6 +39,7 @@ roll_writes = int(args['--roll_writes'])
 # Create Plotter object, tell it which fields to plot
 plotter = RolledProfilePlotter(root_dir, file_dir=data_dir, out_name=subdir_name, roll_writes=roll_writes, start_file=start_file, n_files=n_files)
 plotter.setup_grid(num_rows=1, num_cols=3, col_inch=float(args['--col_inch']), row_inch=float(args['--row_inch']))
+plotter.add_line('z', 'flux', grid_num=0)
 plotter.add_line('z', 'F_conv', grid_num=0)
 plotter.add_line('z', 'F_cond', grid_num=0)
 plotter.add_line('z', 'F_tot', grid_num=0)
