@@ -24,6 +24,7 @@
 \newcommand{\appropto}{\mathpalette\approptoinn\relax}
 \newcommand{\mR}{\ensuremath{\mathcal{R}}}
 \newcommand{\mP}{\ensuremath{\mathcal{P}}}
+\newcommand{\mS}{\ensuremath{\mathcal{S}}}
 \newcommand{\bu}{\ensuremath{\bm{u}}}
 \newcommand{\bV}{\ensuremath{\bm{\omega}}}
 \newcommand{\cross}[2]{\ensuremath{#1 \times #2}}
@@ -31,6 +32,8 @@
 \newcommand{\curl}[1]{\ensuremath{\cross{\grad}{\left(#1\right)}}}
 \newcommand{\pderiv}[2]{\ensuremath{\frac{\partial #1}{\partial #2}}}
 \newcommand{\xHe}{\ensuremath{X_{\text{He}}}}
+\newcommand{\FconvCZ}{\ensuremath{F_{\rm{conv}}^{\rm{CZ}}}}
+\newcommand{\FconvPZ}{\ensuremath{F_{\rm{conv}}^{\rm{PZ}}}}
 
 \renewcommand{\bar}[1]{\ensuremath{\overline{#1}}}
 \renewcommand{\vec}[1]{\ensuremath{\mathbf{#1}}}
@@ -47,21 +50,21 @@ To start with, let's make some definitions.
     \item The Brunt-Vaisaila frequency is $N^2 = g \grad s / c_P$, where $g$ is the gravitational acceleration, $\grad s$ is the entropy gradient, and $c_p$ is the specific heat at constant pressure.
     \item the convective frequency is $f_{\rm{conv}} = 1/\tau_{\rm{conv}}$, where $\tau_{\rm{conv}}$ is a characteristic convective timescale.
     \item We will assume the characteristic convective timescale is the timescale of internal heating, $\tau_{\rm{conv}} = (\rho L^2 / Q)^{1/3}$, where $Q$ is a heating term with units [energy / time / volume], $\rho$ is the density, and $L$ is the characteristic convective length scale.
-    \item The system will be heated at a constant rate in a layer of depth $\delta_H$ so that the flux carried by convection is $F_{\rm{conv}} = Q \delta_H$.
+    \item The system will be heated at a constant rate in a layer of depth $\delta_H$ so that the flux carried by convection is $\FconvCZ = Q \delta_H$.
     \item The mean radiative conductivity varies from a small value $\kappa_{\rm{CZ}}$ in the convection zone to a large vale $\kappa_{\rm{RZ}}$ in the radiative zone.
-    \item Since there is some flux $F_{\rm{bound}} = - \kappa_{\rm{CZ}}\grad T_{\rm{ad}}$ conducted along the convective boundary, there is a total flux $F_{\rm{tot}} = F_{\rm{conv}} + F_{\rm{bound}}$ carried in the system.
-        We will define a parameter $\mu = F_{\rm{bound}}/F_{\rm{conv}}$ so that $F_{\rm{tot}} = (1 + \mu) F_{\rm{conv}}$.
+    \item Since there is some flux $F_{\rm{bound}} = - \kappa_{\rm{CZ}}\grad T_{\rm{ad}}$ conducted along the convective boundary, there is a total flux $F_{\rm{tot}} = \FconvCZ + F_{\rm{bound}}$ carried in the system.
+        We will define a parameter $\mu = F_{\rm{bound}}/\FconvCZ$ so that $F_{\rm{tot}} = (1 + \mu) \FconvCZ$.
     \item In the radiative zone, all of the flux is carried by radiation, $F_{\rm{rad}}^{\rm{RZ}} = F_{\rm{tot}}$.
     \item In the hypothetical adiabatic penetrative zone, the flux is $F_{\rm{tot}} = F_{\rm{rad}}^{\rm{PZ}} + F_{\rm{conv}}^{\rm{PZ}}$.
         We define the penetration parameter:
         \begin{equation}
-            \mathcal{P} \equiv -\frac{F_{\rm{conv}}}{F_{\rm{conv}}^{\rm{PZ}}}.
+            \mathcal{P} \equiv -\frac{\FconvCZ}{\FconvPZ}.
         \end{equation}
         Furthermore we note that $F_{\rm{rad}}^{\rm{PZ}} = F_{\rm{rad}}^{\rm{RZ}}(\grad T_{\rm{ad}} / \grad T_{\rm{RZ}})$.
         Since $F_{\rm{rad}}^{\rm{RZ}} = F_{\rm{tot}}$, we get
         \begin{equation}
             F_{\rm{tot}}\left(1 - \frac{\grad T_{\rm{ad}}}{\grad T_{\rm{RZ}}}\right)
-            = - \frac{F_{\rm{conv}}^{\rm{CZ}}}{\mathcal{P}}.
+            = - \frac{\FconvCZ}{\mathcal{P}}.
         \end{equation}
         Rearranging, we can define $\mP$ as
         \begin{equation}
@@ -76,33 +79,35 @@ To start with, let's make some definitions.
         so $|\grad T_{\rm{ad}}| > |\grad T_{\rm{RZ}}|$.
     \item It is useful to define the stiffness,
         \begin{equation}
-            \mathcal{S} \equiv \frac{N_{\rm{RZ}}^2}{f_{\rm{conv}}}^2
+            \mathcal{S} \equiv \frac{N_{\rm{RZ}}^2}{f_{\rm{conv}}^2}
             = \left(\frac{\rho L^2}{Q}\right)^{2/3}\left(\frac{g \grad s_{\rm{RZ}}}{c_P}\right).
         \end{equation}
         From the ideal gas equation of state, we know
         \begin{equation}
-            \frac{\grad s_{\rm{RZ}}}{c_P} = \grad\left[\frac{1}{\gamma}\ln T - \frac{\gamma-1}{\gamma}\ln\rho\right]
+            \frac{\grad s_{\rm{RZ}}}{c_P} = \grad\left[\frac{1}{\gamma}\ln T - \frac{\gamma-1}{\gamma}\ln\rho\right]_{\rm{RZ}}
             \rightarrow
-            \frac{1}{T}\left[\grad T - \grad T_{\rm{ad}}\right],
+            \frac{1}{T_{\rm{RZ}}}\left[\grad T_{\rm{RZ}} - \grad T_{\rm{ad}}\right],
         \end{equation}
         where we have assumed that hydrostatic equilibrium applies, $T\grad \ln \rho = -g\hat{z} / R - \grad T$ and $\grad T_{\rm{ad}} = -g/c_P\hat{z}$ and $c_P = R \gamma/(\gamma-1)$.
         So
         \begin{equation}
-            S = \left(\frac{\rho L^2}{Q}\right)^{2/3}\frac{g }{T}\left(\grad T_{\rm{RZ}} - \grad T_{\rm{ad}}\right)
+            \mS = \left(\frac{\rho L^2}{Q}\right)^{2/3}\frac{g }{T}\left(\grad T_{\rm{RZ}} - \grad T_{\rm{ad}}\right)
                 = \left(\frac{\rho L^2}{Q}\right)^{2/3}\frac{g \grad T_{\rm{ad}}}{T}\left(\frac{1}{1 + [\mathcal{P}(1 + \mu)]^{-1}} - 1\right).
         \end{equation}
-        Defining the adiabatic gradient $\grad_{\rm{ad}} = (d\ln T / d\ln P)|_{\mathcal{S}}$, and then $\grad T_{\rm{ad}} = \grad_{\rm{ad}} h^{-1} T$ where $h = (d\ln P/d\ln z)^{-1}$ is the pressure scale height, we get
+        Defining the adiabatic gradient $\grad_{\rm{ad}} = (d\ln T / d\ln P)|_{\mathcal{S}}$, and then $\grad T_{\rm{ad}} = \grad_{\rm{ad}} h^{-1} T$ where $h = (d\ln P/d\ln z)^{-1}$ is the pressure scale height, and simplifying the parenthetical, we get
         \begin{equation}
-            S = \grad_{\rm{ad}}\frac{g \tau_{\rm{conv}}^2}{h}\left(\frac{1}{1 + [\mathcal{P}(1 + \mu)]^{-1}} - 1\right).
+            \boxed{
+                \mS = \grad_{\rm{ad}}\frac{ (g \tau_{\rm{conv}}^2) / h}{1 + \mathcal{P}(1 + \mu)}
+            }.
         \end{equation}
-        In hydrostatic equilibrium, $g h = P/\rho = c_s^2 / \gamma$, and if we define the convective velocity $u_{\rm{conv}} = L/\tau_{\rm{conv}}$, we find
+        Going further, in hydrostatic equilibrium, $g h = P/\rho = c_s^2 / \gamma$, and if we define the convective velocity $u_{\rm{conv}} = L/\tau_{\rm{conv}}$, we find
         \begin{equation}
             \frac{g \tau^2}{h} = \frac{1}{\gamma}\frac{c_s^2}{u_{\rm{conv}}^2}\left(\frac{L}{h}\right)^2.
         \end{equation}
         Defining the mach number of convection $\mathcal{M} = u_{\rm{conv}}/c_s$, we find
         \begin{equation}
             \boxed{
-                S = \mathcal{M}^{-2}\frac{\grad_{\rm{ad}}}{\gamma}\left(\frac{L}{h}\right)^2\left(\frac{1}{1 + [\mathcal{P}(1 + \mu)]^{-1}} - 1\right)}.
+                \mS = \mathcal{M}^{-2}\frac{\grad_{\rm{ad}}}{\gamma}\left(\frac{L}{h}\right)^2\left(\frac{1}{1 + \mathcal{P}(1 + \mu)}\right)}.
         \end{equation}
 \end{enumerate}
 
