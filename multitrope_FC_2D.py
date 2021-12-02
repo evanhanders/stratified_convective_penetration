@@ -19,7 +19,8 @@ Options:
     --nrho=<n>                 Depth of domain [default: 1]
     --aspect=<aspect>          Aspect ratio of domain [default: 2]
     --P=<penetration>          Penetration parameter [default: 1]
-    --S=<stiffness>            Stiffness of radiative-convective boundary [default: 1e1]
+    --S=<stiffness>            Stiffness of radiative-convective boundary [default: 1e2]
+    --mu=<fluxes>              Ratio of radiative to convective flux in CZ [default: 1e-1]
 
     --nz=<nz>                  Vertical resolution   [default: 64]
     --nx=<nx>                  Horizontal (x) resolution [default: 128]
@@ -277,7 +278,7 @@ def run_cartesian_instability(args):
     #############################################################################################
     ### 1. Read in command-line args, set up data directory
     data_dir = args['--root_dir'] + '/' + sys.argv[0].split('.py')[0]
-    data_dir += "_Re{}_nrho{}_Pr{}_P{}_S{}_a{}_{}x{}".format(args['--Re'], args['--nrho'], args['--Pr'], args['--P'], args['--S'], args['--aspect'], args['--nx'], args['--nz'])
+    data_dir += "_Re{}_nrho{}_Pr{}_P{}_S{}_mu{}_a{}_{}x{}".format(args['--Re'], args['--nrho'], args['--Pr'], args['--P'], args['--S'], args['--mu'], args['--aspect'], args['--nx'], args['--nz'])
     if args['--label'] is not None:
         data_dir += "_{}".format(args['--label'])
     data_dir += '/'
@@ -296,7 +297,7 @@ def run_cartesian_instability(args):
     nrho = float(args['--nrho'])
     P = float(args['--P']) #timescale ~ 1/Q^{1/3}, Ma ~ 1/t, so Q ~ (Ma^2)^{3/2} ~ Ma^3
     S = float(args['--S'])
-    mu = 1e-3
+    mu = float(args['--mu'])
 
     T_ad_z = -1
     T_rad_z = T_ad_z*(1 + (P*(1+mu))**(-1))**(-1)
