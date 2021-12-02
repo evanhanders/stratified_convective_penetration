@@ -10,8 +10,8 @@ There are 6 control parameters:
     aspect  - The aspect ratio (Lx = aspect * Lz)
 
 Usage:
-    multitrope_AN_2D.py [options] 
-    multitrope_AN_2D.py <config> [options] 
+    multitrope_FC_2D.py [options] 
+    multitrope_FC_2D.py <config> [options] 
 
 Options:
     --Re=<Reynolds>            Freefall reynolds number [default: 1e2]
@@ -19,10 +19,10 @@ Options:
     --nrho=<n>                 Depth of domain [default: 1]
     --aspect=<aspect>          Aspect ratio of domain [default: 2]
     --P=<penetration>          Penetration parameter [default: 1]
-    --S=<stiffness>            Stiffness of radiative-convective boundary [default: 1e2]
+    --S=<stiffness>            Stiffness of radiative-convective boundary [default: 1e1]
 
-    --nz=<nz>                  Vertical resolution   [default: 256]
-    --nx=<nx>                  Horizontal (x) resolution [default: 256]
+    --nz=<nz>                  Vertical resolution   [default: 64]
+    --nx=<nx>                  Horizontal (x) resolution [default: 128]
     --RK222                    Use RK222 timestepper (default: RK443)
     --SBDF2                    Use SBDF2 timestepper (default: RK443)
     --safety=<s>               CFL safety factor [default: 0.75]
@@ -119,35 +119,28 @@ def set_equations(problem):
 #    kx_n0 = "(nx != 0) or  (ny != 0)"
     kx_0  = "(nx == 0)"
     kx_n0 = "(nx != 0)"
-    equations = ( (True, "True", "h1_z - dz(h1) = 0"),
+    equations = ( (True, "True", "T1_z - dz(T1) = 0"),
                   (True, "True", "u_z - dz(u)   = 0"),
-                  (True, "True",  "w_z - dz(w)   = 0"),
-                  (True, "True", "dx(u) + dy(v) + w_z + w*grad_ln_rho0 = 0"), #Anelastic
-                  (True, "True", "dt(u) - (μ/rho0)*visc_div_stress_x  + dx(h1) - T0*dx(s1) = -UdotGrad(u, u_z) "), #momentum-x
-                  (True, "True", "dt(w) - (μ/rho0)*visc_div_stress_z  + h1_z   - T0*dz(s1) = -UdotGrad(w, w_z) "), #momentum-z
-                  (True, kx_n0, "dt(s1) - (κ/(rho0*Cp))*Lap(T1, T1_z) + w*s0_z = -UdotGrad(s1, dz(s1)) "), #energy eqn
-                  (True, kx_0,  "dt(s1) - (1/(rho0*Cp))*dz(k0*T1_z)   + w*s0_z = -UdotGrad(s1, dz(s1))  + (Q/(rho0*Cp) + dz(k0*T0_z))"), #energy eqn
+                  (True, "True", "w_z - dz(w)   = 0"),
+                  (True, "True", "dt(ln_rho1) + Div_u + w*grad_ln_rho0 = -UdotGrad(ln_rho1, dz(ln_rho1))"), #Continuity
+                  (True, "True", "dt(u) - visc_L_x  + R*( dx(T1) + T0*dx(ln_rho1)                  ) = -UdotGrad(u, u_z) - R*T1*dx(ln_rho1) + visc_R_x "), #momentum-x
+                  (True, "True", "dt(w) - visc_L_z  + R*( T1_z  + T1*grad_ln_rho0 + T0*dz(ln_rho1) ) = -UdotGrad(w, w_z) - R*T1*dz(ln_rho1) + visc_R_z "), #momentum-z
+                  (True, kx_n0, "dt(T1) + w*T0_z + (γ-1)*T0*Div_u - diff_L_kn0 = -UdotGrad(T1, T1_z) - (γ-1)*T1*Div_u + visc_heat + diff_R_kn0"), #energy eqn
+                  (True, kx_0,  "dt(T1) + w*T0_z + (γ-1)*T0*Div_u - diff_L_k0  = -UdotGrad(T1, T1_z) - (γ-1)*T1*Div_u + visc_heat + diff_R_k0 "), #energy eqn
                 )
     for solve, cond, eqn in equations:
         if solve:
             logger.info('solving eqn {} under condition {}'.format(eqn, cond))
             problem.add_equation(eqn, condition=cond)
 
-    boundaries = ( (True, " left(s1) = 0", "True"),
-                   (True, "right(dz(s1)) = 0", "True"),
-                   (True, " left(ωy) = 0", "True"),
-                   (True, "right(ωy) = 0", "True"),
-#                   (True, " left(u) = 0", "True"),
-#                   (True, "right(u) = 0", "True"),
-#                   (True, " left(v) = 0", "True"),
-#                   (True, "right(v) = 0", "True"),
-#                   (args['--stress_free'], " left(ωx) = 0", "True"),
-#                   (args['--stress_free'], "right(ωx) = 0", "True"),
-#                   (args['--stress_free'], " left(ωy) = 0", "True"),
-#                   (args['--stress_free'], "right(ωy) = 0", "True"),
+    boundaries = ( (True, " left(T1) = 0", "True"),
+                   (True, "right(dz(T1)) = 0", "True"),
+                   (True, " left(u) = 0", "True"),
+                   (True, "right(u) = 0", "True"),
+#                   (True, " left(ωy) = 0", "True"),
+#                   (True, "right(ωy) = 0", "True"),
                    (True, " left(w) = 0", "True"),
-                   (True, "right(w) = 0", kx_n0),
-                   (True, "left(h1) = 0", kx_0),
+                   (True, "right(w) = 0", "True"),
                  )
     for solve, bc, cond in boundaries:
         if solve: 
@@ -168,6 +161,8 @@ def set_subs(problem):
     problem.substitutions['vol_avg(A)']   = 'integ(A)/Lx/Lz'
     problem.substitutions['plane_std(A)'] = 'sqrt(plane_avg((A - plane_avg(A))**2))'
 
+    problem.substitutions['rho_full'] = 'rho0*exp(ln_rho1)'
+
     problem.substitutions['ωx'] = "dy(w) - v_z"
     problem.substitutions['ωy'] = "u_z - dx(w)"
     problem.substitutions['ωz'] = "dx(v) - dy(u)"
@@ -175,17 +170,19 @@ def set_subs(problem):
     problem.substitutions['vel_rms2']  = 'u**2 + v**2 + w**2'
     problem.substitutions['vel_rms']   = 'sqrt(vel_rms2)'
     problem.substitutions['KE']        = 'rho0*vel_rms2/2'
-    problem.substitutions['ν']  = 'μ/rho0'
-    problem.substitutions['χ']  = 'κ/(rho0*Cp)'
-    problem.substitutions['Re'] = '(vel_rms/ν)'
-    problem.substitutions['Pe'] = '(vel_rms/χ)'
+    problem.substitutions['ν']  = 'μ/rho_full'
+    problem.substitutions['χ']  = 'κ/(rho_full*Cp)'
 
-    problem.substitutions['T1']        = '(h1/Cp)'
-    problem.substitutions['T1_z']      = '(h1_z/Cp)'
     problem.substitutions['T']         = '(T0 + T1)'
     problem.substitutions['T_z']       = '(T0_z + T1_z)'
-    problem.substitutions['dz_lnT']    = 'T_z / T'
-    problem.substitutions['dz_lnrho']  = '(dz_lnT/(γ-1) - dz(s1)/R)'
+    problem.substitutions['s1']        = '(Cv*log(1+T1/T0) - ln_rho1)'
+    problem.substitutions['s0']        = '(Cv*log(T0) - ln_rho0)'
+    problem.substitutions['dz_lnT']    = '(T_z/T)'
+    problem.substitutions['dz_lnP']    = '(dz_lnT + grad_ln_rho0 + dz(ln_rho1))'
+
+    problem.substitutions['Re'] = '(vel_rms*Lz/ν)'
+    problem.substitutions['Pe'] = '(vel_rms*Lz/χ)'
+    problem.substitutions['Ma'] = '(vel_rms/(γ*sqrt(T)))'
 
     problem.substitutions['Div_u'] = '(dx(u) + dy(v) + w_z)'
     problem.substitutions["σxx"] = "(2*dx(u) - 2/3*Div_u)"
@@ -199,6 +196,30 @@ def set_subs(problem):
     problem.substitutions['visc_div_stress_y'] = 'dx(σxy) + dy(σyy) + dz(σyz)'
     problem.substitutions['visc_div_stress_z'] = 'dx(σxz) + dy(σyz) + dz(σzz)'
 
+    problem.substitutions['visc_L_x'] = '((μ/rho0)*visc_div_stress_x)'
+    problem.substitutions['visc_L_z'] = '((μ/rho0)*visc_div_stress_z)'
+    problem.substitutions['visc_R_x'] = '((μ/rho_full)*visc_div_stress_x - visc_L_x)'
+    problem.substitutions['visc_R_z'] = '((μ/rho_full)*visc_div_stress_z - visc_L_z)'
+    
+    problem.substitutions['diff_L_kn0'] = '((κ/(rho0*Cv))*Lap(T1, T1_z))'
+    problem.substitutions['diff_L_k0']  = '((1/(rho0*Cv))*dz(k0*T1_z))'
+    problem.substitutions['diff_R_kn0'] = '((κ/(rho_full*Cv))*(Lap(T1, T1_z)) - diff_L_kn0)'
+    problem.substitutions['diff_R_k0']  = '((1/(rho_full*Cv))*(Q + dz(k0*T0_z) + dz(k0*T1_z)) - diff_L_k0)'
+
+    problem.substitutions['visc_heat'] = '((μ/(rho_full*Cv))*(dx(u)*σxx + dy(v)*σyy + w_z*σzz + σxy**2 + σxz**2 + σyz**2))'
+
+    problem.substitutions['grad']      = '(dz_lnT/dz_lnP)'
+    problem.substitutions['grad_rad']  = '(flux/(R*k0*g))'
+    problem.substitutions['grad_ad']   = '((γ-1)/γ)'
+
+    problem.substitutions['phi']    = '(-g*z)'
+    problem.substitutions['F_cond'] = '(-k0*T_z)'
+    problem.substitutions['F_enth'] = '( rho_full * w * ( Cp * T ) )'
+    problem.substitutions['F_KE']   = '( rho_full * w * ( vel_rms2 / 2 ) )'
+    problem.substitutions['F_PE']   = '( rho_full * w * phi )'
+    problem.substitutions['F_visc'] = '( - μ * ( u*σxz + v*σyz + w*σzz ) )'
+    problem.substitutions['F_conv'] = '( F_enth + F_KE + F_PE + F_visc )'
+    problem.substitutions['F_tot']  = '( F_cond + F_conv )'
 
     return problem
 
@@ -215,10 +236,10 @@ def initialize_output(solver, data_dir, mode='overwrite', output_dt=2, iter=np.i
     profiles = solver.evaluator.add_file_handler(data_dir+'profiles', sim_dt=output_dt, max_writes=40, mode=mode)
     profiles.add_task("plane_avg(s1)", name='s1')
     profiles.add_task("plane_avg(sqrt((s1 - plane_avg(s1))**2))", name='s1_fluc')
-    profiles.add_task("plane_avg(dz(s1) + s0_z)", name='s_z')
+    profiles.add_task("plane_avg(dz(s1))", name='s1_z')
     profiles.add_task("plane_avg(T_z - T_ad_z)", name='grad_T_superad')
-    profiles.add_task("plane_avg(dz_lnrho)", name='dz_lnrho')
-    profiles.add_task("plane_avg(h1_z)", name='h1_z')
+    profiles.add_task("plane_avg(grad_ln_rho0 + dz(ln_rho1))", name='dz_lnrho')
+    profiles.add_task("plane_avg(T1_z)", name='T1_z')
     profiles.add_task("plane_avg(u)", name='u')
     profiles.add_task("plane_avg(w)", name='w')
     profiles.add_task("plane_avg(vel_rms)", name='vel_rms')
@@ -226,6 +247,17 @@ def initialize_output(solver, data_dir, mode='overwrite', output_dt=2, iter=np.i
     profiles.add_task("plane_avg(KE)", name='KE')
     profiles.add_task("plane_avg(sqrt((v*ωz - w*ωy)**2 + (u*ωy - v*ωx)**2 + (w*ωx - u*ωz)**2))", name='advection')
     profiles.add_task("plane_avg(enstrophy)", name="enstrophy")
+    profiles.add_task("plane_avg(grad)", name="grad")
+    profiles.add_task("plane_avg(grad_ad*ones)", name="grad_ad")
+    profiles.add_task("plane_avg(grad_rad)", name="grad_rad")
+    profiles.add_task("plane_avg(F_cond)", name="F_cond")
+    profiles.add_task("plane_avg(F_enth)", name="F_enth")
+    profiles.add_task("plane_avg(F_KE)", name="F_KE")
+    profiles.add_task("plane_avg(F_PE)", name="F_PE")
+    profiles.add_task("plane_avg(F_visc)", name="F_visc")
+    profiles.add_task("plane_avg(F_conv)", name="F_conv")
+    profiles.add_task("plane_avg(F_tot)", name="F_tot")
+    profiles.add_task("plane_avg(flux)", name="flux")
     analysis_tasks['profiles'] = profiles
 
     scalars = solver.evaluator.add_file_handler(data_dir+'scalars', sim_dt=output_dt*5, max_writes=np.inf, mode=mode)
@@ -297,11 +329,8 @@ def run_cartesian_instability(args):
 
     F_conv = Q_mag*0.1*Lz
     F_top  = 1e-3*F_conv
-#    T_rad_z = (1/(1-epsilon*(gamma-1)/gamma))*T_ad_z
     k_cz = F_top
     k_rz = -(F_top + F_conv)/T_rad_z
-
-
 
     #Adjust to account for expected velocities. and larger m = 0 diffusivities.
     logger.info("Running polytrope with the following parameters:")
@@ -319,48 +348,43 @@ def run_cartesian_instability(args):
     z_de = domain.grid(-1, scales=domain.dealias)
 
     #Establish variables and setup problem
-    variables = ['s1', 'h1', 'h1_z', 'u',  'w', 'u_z', 'w_z']
+    variables = ['ln_rho1', 'T1', 'T1_z', 'u',  'w', 'u_z', 'w_z']
     problem = de.IVP(domain, variables=variables, ncc_cutoff=1e-10)
 
     # Set up background / initial state vs z.
     grad_ln_rho0 = domain.new_field()
-    grad_ln_T0   = domain.new_field()
-    ln_rho0      = domain.new_field()
     rho0         = domain.new_field()
+    ln_rho0      = domain.new_field()
     s0_z         = domain.new_field()
     T0   = domain.new_field()
     T0_z = domain.new_field()
     T0_zz = domain.new_field()
     Q = domain.new_field()
     k0 = domain.new_field()
-    for f in [grad_ln_rho0, rho0, s0_z, T0, T0_z, T0_zz, Q, k0, ln_rho0, grad_ln_T0]:
+    flux = domain.new_field()
+    for f in [ln_rho0, grad_ln_rho0, rho0, s0_z, T0, T0_z, T0_zz, Q, k0]:
         f.set_scales(domain.dealias)
-    for f in [grad_ln_rho0, T0, T0_z, k0, rho0, s0_z]:
+    for f in [ln_rho0, grad_ln_rho0, T0, T0_z, k0, rho0]:
         f.meta['x']['constant'] = True
 
-    import matplotlib.pyplot as plt
 
     T0_z['g'] = T_rad_z + zero_to_one(z_de, 0.5*Lz, delta)*(T_ad_z - T_rad_z)
     T0_z.differentiate('z', out=T0_zz)
     T0_z.antidifferentiate('z', ('right', 1), out=T0)
 
-
-    grad_ln_T0['g'] = T0_z['g']/T0['g']
     grad_ln_rho0['g'] = (-g - T0_z['g'])/T0['g']
-    s0_z['g'] = (1/gamma)*(grad_ln_T0['g'] - (gamma-1)*grad_ln_rho0['g'])
-#    s0_z['g'] = (g + Cp*T0_z['g'])/T0['g']
-#    grad_ln_rho0['g'] = ((1/gamma)*grad_ln_T0['g'] - s0_z['g']/Cp) * (gamma / (gamma-1))
     grad_ln_rho0.antidifferentiate('z', ('right', 0), out=ln_rho0)
     rho0['g'] = np.exp(ln_rho0['g'])
 
-    Q_func  = lambda z: zero_to_one(z, 0.85*Lz, delta_heat)*one_to_zero(z, 0.95*Lz, delta_heat)
+    Q_func = lambda z: zero_to_one(z, 0.85*Lz, delta_heat)*one_to_zero(z, 0.95*Lz, delta_heat)
     Q['g'] = -Q_mag*Q_func(z_de)
     k0['g'] = k_rz + zero_to_one(z_de, 0.5*Lz, delta)*(k_cz - k_rz)
-
-
     flux = Q.antidifferentiate('z', ('right', F_top))
 
+    s0_z['g'] = ((1/gamma)*(T0_z/T0 - (gamma-1)*grad_ln_rho0)).evaluate()['g']
+
     if args['--plot_structure']:
+        import matplotlib.pyplot as plt
         fig = plt.figure()
         plt.plot(z_de[0,:], T0_z['g'][0,:])
         plt.ylabel('T0_z')
@@ -377,7 +401,11 @@ def run_cartesian_instability(args):
         fig.savefig('{}/rho0_vs_z.png'.format(data_dir), dpi=300, bbox_inches='tight')
         plt.close()
 
+
     #Plug in default parameters
+    ones = domain.new_field()
+    ones['g'] = 1
+    problem.parameters['ones']   = ones
     problem.parameters['g']      = g
     problem.parameters['R']      = R
     problem.parameters['γ']      = gamma
@@ -390,11 +418,14 @@ def run_cartesian_instability(args):
     problem.parameters['T0_zz']    = T0_zz
     problem.parameters['Q'] = Q
     problem.parameters['grad_ln_rho0'] = grad_ln_rho0
+    problem.parameters['ln_rho0'] = ln_rho0
     problem.parameters['rho0'] = rho0
     problem.parameters['s0_z'] = s0_z
     problem.parameters['k0'] = k0
     problem.parameters['Cp'] = Cp
+    problem.parameters['Cv'] = Cv
     problem.parameters['T_ad_z'] = T_ad_z
+    problem.parameters['flux'] = flux
 
     problem = set_subs(problem)
     problem = set_equations(problem)
@@ -415,13 +446,15 @@ def run_cartesian_instability(args):
     ### 4. Set initial conditions or read from checkpoint.
     mode = 'overwrite'
     if args['--restart'] is None:
-        s1 = solver.state['s1']
+        T1 = solver.state['T1']
+        T1_z = solver.state['T1_z']
         z_de = domain.grid(-1, scales=domain.dealias)
-        for f in [s1]:
+        for f in [T1]:
             f.set_scales(domain.dealias, keep_data=True)
 
         noise = global_noise(domain, int(args['--seed']))
-        s1['g'] = 1e-3*np.sin(np.pi*(z_de))*noise['g']
+        T1['g'] = 1e-3*np.sqrt(Ma2)*np.sin(np.pi*(z_de))*noise['g']
+        T1.differentiate('z', out=T1_z)
         dt = None
     else:
 #        write, dt = solver.load_state(args['--restart'], -1) 
@@ -452,6 +485,7 @@ def run_cartesian_instability(args):
     flow = flow_tools.GlobalFlowProperty(solver, cadence=1)
     flow.add_property("Re", name='Re')
     flow.add_property("Pe", name='Pe')
+    flow.add_property("Ma", name='Ma')
 
     Hermitian_cadence = 100
 
@@ -469,12 +503,13 @@ def run_cartesian_instability(args):
                     for f in solver.state.fields:
                         f.require_grid_space()
 
-                if effective_iter % 10 == 0:
+                if effective_iter % 1 == 0:
                     Re_avg = flow.grid_average('Re')
 
                     log_string =  'Iteration: {:7d}, '.format(solver.iteration)
                     log_string += 'Time: {:8.3e} heat ({:8.3e} therm), dt: {:8.3e}, dt/t_h: {:8.3e}, '.format(solver.sim_time/t_heat, solver.sim_time/Pe0,  dt, dt/t_heat)
                     log_string += 'Pe: {:8.3e}/{:8.3e}, '.format(flow.grid_average('Pe'), flow.max('Pe'))
+                    log_string += 'Ma: {:8.3e}/{:8.3e}, '.format(flow.grid_average('Ma'), flow.max('Ma'))
                     logger.info(log_string)
 
                 dt = CFL.compute_dt()
