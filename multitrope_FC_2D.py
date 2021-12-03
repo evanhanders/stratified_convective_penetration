@@ -329,7 +329,7 @@ def run_cartesian_instability(args):
     delta_heat = 0.025*Lz
 
     F_conv = Q_mag*0.1*Lz
-    F_top  = 1e-3*F_conv
+    F_top  = mu*F_conv
     k_cz = F_top
     k_rz = -(F_top + F_conv)/T_rad_z
 
@@ -400,7 +400,14 @@ def run_cartesian_instability(args):
         plt.plot(z_de[0,:], rho0['g'][0,:])
         plt.ylabel('rho0')
         fig.savefig('{}/rho0_vs_z.png'.format(data_dir), dpi=300, bbox_inches='tight')
+        plt.clf()
+
+        plt.plot(z_de[0,:], T0['g'][0,:])
+        plt.ylabel('T0')
+        fig.savefig('{}/T0_vs_z.png'.format(data_dir), dpi=300, bbox_inches='tight')
         plt.close()
+
+
 
 
     #Plug in default parameters
