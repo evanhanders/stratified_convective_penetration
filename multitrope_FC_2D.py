@@ -17,7 +17,7 @@ Options:
     --Re=<Reynolds>            Freefall reynolds number [default: 1e2]
     --Pr=<Prandtl>             Prandtl number = nu/kappa [default: 0.5]
     --nrho=<n>                 Depth of domain [default: 1]
-    --aspect=<aspect>          Aspect ratio of domain [default: 2]
+    --aspect=<aspect>          Aspect ratio of domain [default: 4]
     --P=<penetration>          Penetration parameter [default: 1]
     --S=<stiffness>            Stiffness of radiative-convective boundary [default: 1e2]
     --mu=<fluxes>              Ratio of radiative to convective flux in CZ [default: 1e-1]
@@ -37,7 +37,8 @@ Options:
     --label=<label>            Optional additional case name label
     --root_dir=<dir>           Root directory for output [default: ./]
 
-    --plot_structure           If flagged, make some output plots of the structure [good on 1 core]
+    --plot_structure           If flagged, make some output plots of the structure (good on 1 core)
+    --up                       If flagged, study convection penetrating upwards
 """
 import logging
 import os
@@ -134,8 +135,12 @@ def set_equations(problem):
             logger.info('solving eqn {} under condition {}'.format(eqn, cond))
             problem.add_equation(eqn, condition=cond)
 
-    boundaries = ( (True, " left(T1) = 0", "True"),
-                   (True, "right(dz(T1)) = 0", "True"),
+
+    up = args['--up']
+    boundaries = ( (not(up), " left(T1) = 0", "True"),
+                   (not(up), "right(T1_z) = 0", "True"),
+                   (up, " left(T1_z) = 0", "True"),
+                   (up, "right(T1) = 0", "True"),
                    (True, " left(u) = 0", "True"),
                    (True, "right(u) = 0", "True"),
 #                   (True, " left(ωy) = 0", "True"),
@@ -278,6 +283,10 @@ def run_cartesian_instability(args):
     #############################################################################################
     ### 1. Read in command-line args, set up data directory
     data_dir = args['--root_dir'] + '/' + sys.argv[0].split('.py')[0]
+    if args['--up']:
+        data_dir += "_Upwards"
+    else:
+        data_dir += "_Downwards"
     data_dir += "_Re{}_nrho{}_Pr{}_P{}_S{}_mu{}_a{}_{}x{}".format(args['--Re'], args['--nrho'], args['--Pr'], args['--P'], args['--S'], args['--mu'], args['--aspect'], args['--nx'], args['--nz'])
     if args['--label'] is not None:
         data_dir += "_{}".format(args['--label'])
@@ -299,7 +308,14 @@ def run_cartesian_instability(args):
     S = float(args['--S'])
     mu = float(args['--mu'])
 
-    T_ad_z = -1
+    gamma = 5/3
+    R = 1
+    Cv = R/(gamma-1)
+    Cp = gamma*Cv
+    m_ad = 1/(gamma-1)
+    g = 1/(m_ad+1)
+    T_ad_z = -g/Cp
+
     T_rad_z = T_ad_z*(1 + (P*(1+mu))**(-1))**(-1)
     Ma2 = (1/S)*(1-(1/(1+1/(P*(1+mu)))))
 
@@ -308,30 +324,29 @@ def run_cartesian_instability(args):
     logger.info("heating timescale: {:8.3e}".format(t_heat))
     logger.info("T_ad_z, T_rad_z: {:8.3e}, {:8.3e}".format(T_ad_z, T_rad_z))
 
-
-    gamma = 5/3
-    R = 1
-    Cv = R/(gamma-1)
-    Cp = gamma*Cv
-    m_ad = 1/(gamma-1)
-    g = Cp #hydrostatic equilibrium for a grad s = 0 background: grad h + T grad S + grad phi = 0. => grad h = - grad phi
-    T_ad_z = -g/Cp
+    T_bot_CZ = 1
+    rho_bot_CZ = 1
+    T_top_CZ = T_bot_CZ*np.exp(-nrho/m_ad)
+    rho_top_CZ = rho_bot_CZ*np.exp(-nrho)
 
     Re0   *= t_heat
     Pe0   = Pr*Re0
     κ     = Cp/Pe0
     μ     = 1/Re0
-    Lz    = (np.exp(nrho/np.abs(m_ad))-1)*2
-    Lx    = aspect * Lz
+    L_cz = (1/T_ad_z)*(np.exp(-nrho/m_ad) - 1)
+    if args['--up']:
+        Lz    = 1.5*L_cz
+    else:
+        Lz    = 2*L_cz
+    Lx    = aspect * L_cz
     Ly    = Lx
-    z0    = Lz + 1
-    delta = 0.05*Lz
-    delta_heat = 0.025*Lz
+    delta = 0.1*L_cz
+    delta_heat = 0.05*L_cz
 
-    F_conv = Q_mag*0.1*Lz
-    F_top  = mu*F_conv
-    k_cz = F_top
-    k_rz = -(F_top + F_conv)/T_rad_z
+    F_conv = Q_mag*0.2*L_cz
+    F_BC  = mu*F_conv
+    k_cz = F_BC
+    k_rz = -(F_BC + F_conv)/T_rad_z
 
     #Adjust to account for expected velocities. and larger m = 0 diffusivities.
     logger.info("Running polytrope with the following parameters:")
@@ -369,18 +384,33 @@ def run_cartesian_instability(args):
         f.meta['x']['constant'] = True
 
 
-    T0_z['g'] = T_rad_z + zero_to_one(z_de, 0.5*Lz, delta)*(T_ad_z - T_rad_z)
+    if args['--up']:
+        T0_z['g'] = T_rad_z + one_to_zero(z_de, L_cz, delta)*(T_ad_z - T_rad_z)
+    else:
+        T0_z['g'] = T_rad_z + zero_to_one(z_de, L_cz, delta)*(T_ad_z - T_rad_z)
     T0_z.differentiate('z', out=T0_zz)
-    T0_z.antidifferentiate('z', ('right', 1), out=T0)
+    if args['--up']:
+        T0_z.antidifferentiate('z', ('left', T_bot_CZ), out=T0)
+    else:
+        T0_z.antidifferentiate('z', ('right', T_top_CZ), out=T0)
 
     grad_ln_rho0['g'] = (-g - T0_z['g'])/T0['g']
-    grad_ln_rho0.antidifferentiate('z', ('right', 0), out=ln_rho0)
+    if args['--up']:
+        grad_ln_rho0.antidifferentiate('z', ('left', np.log(rho_bot_CZ)), out=ln_rho0)
+    else:
+        grad_ln_rho0.antidifferentiate('z', ('right', np.log(rho_top_CZ)), out=ln_rho0)
     rho0['g'] = np.exp(ln_rho0['g'])
 
-    Q_func = lambda z: zero_to_one(z, 0.85*Lz, delta_heat)*one_to_zero(z, 0.95*Lz, delta_heat)
-    Q['g'] = -Q_mag*Q_func(z_de)
-    k0['g'] = k_rz + zero_to_one(z_de, 0.5*Lz, delta)*(k_cz - k_rz)
-    flux = Q.antidifferentiate('z', ('right', F_top))
+    if args['--up']:
+        Q_func = lambda z: zero_to_one(z, 0.1*L_cz, delta_heat)*one_to_zero(z, 0.3*L_cz, delta_heat)
+        Q['g'] = Q_mag*Q_func(z_de)
+        k0['g'] = k_rz + one_to_zero(z_de, L_cz, delta)*(k_cz - k_rz)
+        flux = Q.antidifferentiate('z', ('left', F_BC))
+    else:
+        Q_func = lambda z: zero_to_one(z, 0.85*Lz, delta_heat)*one_to_zero(z, 0.95*Lz, delta_heat)
+        Q['g'] = -Q_mag*Q_func(z_de)
+        k0['g'] = k_rz + zero_to_one(z_de, 0.5*Lz, delta)*(k_cz - k_rz)
+        flux = Q.antidifferentiate('z', ('right', F_BC))
 
     s0_z['g'] = ((1/gamma)*(T0_z/T0 - (gamma-1)*grad_ln_rho0)).evaluate()['g']
 
