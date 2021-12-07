@@ -335,7 +335,10 @@ def run_cartesian_instability(args):
     μ     = 1/Re0
     L_cz = (1/T_ad_z)*(np.exp(-nrho/m_ad) - 1)
     if args['--up']:
-        Lz    = 1.5*L_cz
+        if nrho <= 1:
+            Lz    = 2*L_cz
+        else:
+            Lz    = 1.5*L_cz
     else:
         Lz    = 2*L_cz
     Lx    = aspect * L_cz
@@ -345,7 +348,7 @@ def run_cartesian_instability(args):
 
     F_conv = Q_mag*0.2*L_cz
     F_BC  = mu*F_conv
-    k_cz = F_BC
+    k_cz = -F_BC/T_ad_z
     k_rz = -(F_BC + F_conv)/T_rad_z
 
     #Adjust to account for expected velocities. and larger m = 0 diffusivities.
