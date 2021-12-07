@@ -316,23 +316,12 @@ def run_cartesian_instability(args):
     g = 1/(m_ad+1)
     T_ad_z = -g/Cp
 
-    T_rad_z = T_ad_z*(1 + (P*(1+mu))**(-1))**(-1)
-    Ma2 = (1/S)*(1-(1/(1+1/(P*(1+mu)))))
-
-    Q_mag = Ma2**(3/2)
-    t_heat = Q_mag**(-1/3)
-    logger.info("heating timescale: {:8.3e}".format(t_heat))
-    logger.info("T_ad_z, T_rad_z: {:8.3e}, {:8.3e}".format(T_ad_z, T_rad_z))
-
     T_bot_CZ = 1
     rho_bot_CZ = 1
     T_top_CZ = T_bot_CZ*np.exp(-nrho/m_ad)
     rho_top_CZ = rho_bot_CZ*np.exp(-nrho)
+    grad_ad = (gamma-1)/gamma
 
-    Re0   *= t_heat
-    Pe0   = Pr*Re0
-    κ     = Cp/Pe0
-    μ     = 1/Re0
     L_cz = (1/T_ad_z)*(np.exp(-nrho/m_ad) - 1)
     if args['--up']:
         if nrho <= 1:
@@ -345,6 +334,22 @@ def run_cartesian_instability(args):
     Ly    = Lx
     delta = 0.1*L_cz
     delta_heat = 0.05*L_cz
+    h_nondim = R*(T_bot_CZ) / g
+
+    T_rad_z = T_ad_z*(1 + (P*(1+mu))**(-1))**(-1) #This is eqn 3 in derivation pdf
+    Ma2 = (1/S)*(1/(P*(1+mu))) * (grad_ad/gamma) * (L_cz/h_nondim)**2 #This is eqn 10 in derivation pdf
+
+    #Q_mag = rho L^2 / tau_conv^3 = rho_heat * (R T0)^3/2 Ma^{3} / L_cz 
+    #Q in eqns is in units of [energy/time]. Want same [energy/time] for upflow and downflow.
+    Q_mag = rho_bot_CZ*Ma2**(3/2) * (R * T_bot_CZ)**(3/2) / L_cz
+    t_heat = (rho_bot_CZ*L_cz**2/Q_mag)**(1/3)
+    logger.info("heating timescale: {:8.3e}".format(t_heat))
+    logger.info("T_ad_z, T_rad_z: {:8.3e}, {:8.3e}".format(T_ad_z, T_rad_z))
+
+    Re0   *= t_heat
+    Pe0   = Pr*Re0
+    κ     = Cp/Pe0
+    μ     = 1/Re0
 
     F_conv = Q_mag*0.2*L_cz
     F_BC  = mu*F_conv
@@ -397,7 +402,7 @@ def run_cartesian_instability(args):
     else:
         T0_z.antidifferentiate('z', ('right', T_top_CZ), out=T0)
 
-    grad_ln_rho0['g'] = (-g - T0_z['g'])/T0['g']
+    grad_ln_rho0['g'] = (-g - R*T0_z['g'])/(R*T0['g'])
     if args['--up']:
         grad_ln_rho0.antidifferentiate('z', ('left', np.log(rho_bot_CZ)), out=ln_rho0)
     else:
