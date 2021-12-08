@@ -425,31 +425,8 @@ def run_cartesian_instability(args):
     s0_z['g'] = ((1/gamma)*(T0_z/T0 - (gamma-1)*grad_ln_rho0)).evaluate()['g']
 
 
-    L_schwarzschild = L_cz #fix later
-
-    if args['--plot_structure']:
-        import matplotlib.pyplot as plt
-        fig = plt.figure()
-        plt.plot(z_de[0,:], T0_z['g'][0,:])
-        plt.ylabel('T0_z')
-        fig.savefig('{}/grad_T_vs_z.png'.format(data_dir), dpi=300, bbox_inches='tight')
-        fig.clf()
-
-        plt.plot(z_de[0,:], s0_z['g'][0,:])
-        plt.ylabel('s0_z')
-        fig.savefig('{}/grad_s_vs_z.png'.format(data_dir), dpi=300, bbox_inches='tight')
-        fig.clf()
-
-        plt.plot(z_de[0,:], rho0['g'][0,:])
-        plt.ylabel('rho0')
-        fig.savefig('{}/rho0_vs_z.png'.format(data_dir), dpi=300, bbox_inches='tight')
-        plt.clf()
-
-        plt.plot(z_de[0,:], T0['g'][0,:])
-        plt.ylabel('T0')
-        fig.savefig('{}/T0_vs_z.png'.format(data_dir), dpi=300, bbox_inches='tight')
-        plt.close()
-
+    grad_rad = (flux/(R*k0*g)).evaluate()
+    grad_ad = (gamma-1)/gamma
 
 
 
@@ -556,6 +533,50 @@ def run_cartesian_instability(args):
     dense_handler = solver.evaluator.add_dictionary_handler(sim_dt=measure_cadence, iter=np.inf)
     dense_handler.add_task("plane_avg(grad_ad - grad)", name="grad_s", scales=dense_tuple, layout='g')
     dense_handler.add_task("plane_avg(grad_ad - grad_rad)", name="delta_R", scales=dense_tuple, layout='g')
+
+    delta_R = (grad_ad - grad_rad).evaluate()
+    delta_R.set_scales(dense_tuple, keep_data=True)
+    z_RZ = z_dense[delta_R['g'][0,:] > 0]
+    if args['--up']:
+        if len(z_RZ) == 0: z_RZ = [Lz,]
+        L_schwarzschild = reducer.reduce_scalar(np.min(z_RZ), MPI.MIN)
+    else:
+        if len(z_RZ) == 0: z_RZ = [0,]
+        L_schwarzschild = reducer.reduce_scalar(np.max(z_RZ), MPI.MAX)
+
+    if args['--plot_structure']:
+        import matplotlib.pyplot as plt
+        fig = plt.figure()
+        plt.plot(z_de[0,:], T0_z['g'][0,:])
+        plt.ylabel('T0_z')
+        fig.savefig('{}/grad_T_vs_z.png'.format(data_dir), dpi=300, bbox_inches='tight')
+        fig.clf()
+
+        plt.plot(z_de[0,:], s0_z['g'][0,:])
+        plt.ylabel('s0_z')
+        fig.savefig('{}/grad_s_vs_z.png'.format(data_dir), dpi=300, bbox_inches='tight')
+        fig.clf()
+
+        plt.plot(z_de[0,:], rho0['g'][0,:])
+        plt.ylabel('rho0')
+        fig.savefig('{}/rho0_vs_z.png'.format(data_dir), dpi=300, bbox_inches='tight')
+        plt.clf()
+
+        plt.axhline(grad_ad, c='k', label='grad_ad')
+        plt.plot(z_de, grad_rad['g'][0,:], label='grad_rad')
+        plt.axvline(L_schwarzschild, c='blue', label='L_schwarzschild')
+        plt.legend()
+        fig.savefig('{}/grads.png'.format(data_dir), dpi=300, bbox_inches='tight')
+        plt.clf()
+
+        plt.plot(z_de[0,:], T0['g'][0,:])
+        plt.ylabel('T0')
+        fig.savefig('{}/T0_vs_z.png'.format(data_dir), dpi=300, bbox_inches='tight')
+        plt.close()
+
+
+
+
 
     Hermitian_cadence = 100
 
