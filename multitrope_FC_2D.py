@@ -518,7 +518,7 @@ def run_cartesian_instability(args):
     #delta_0.5 measures
     measure_cadence = max_dt
     departure_fracs = np.array([0.1, 0.5, 0.9])
-    deltas = np.array([0, 0, 0])
+    deltas = np.array([0, 0, 0], dtype=np.float64)
     delta_queues = []
     for f in departure_fracs:
         delta_queues.append((queue.Queue(maxsize=int(100/max_dt))))
@@ -563,7 +563,7 @@ def run_cartesian_instability(args):
         plt.clf()
 
         plt.axhline(grad_ad, c='k', label='grad_ad')
-        plt.plot(z_de, grad_rad['g'][0,:], label='grad_rad')
+        plt.plot(z_de[0,:], grad_rad['g'][0,:], label='grad_rad')
         plt.axvline(L_schwarzschild, c='blue', label='L_schwarzschild')
         plt.legend()
         fig.savefig('{}/grads.png'.format(data_dir), dpi=300, bbox_inches='tight')
