@@ -317,10 +317,16 @@ def run_cartesian_instability(args):
     g = 1/(m_ad+1)
     T_ad_z = -g/Cp
 
-    T_bot_CZ = 1
-    rho_bot_CZ = 1
-    T_top_CZ = T_bot_CZ*np.exp(-nrho/m_ad)
-    rho_top_CZ = rho_bot_CZ*np.exp(-nrho)
+    if args['--up']:
+        T_bot_CZ = np.exp(nrho/m_ad)
+        rho_bot_CZ = np.exp(nrho)
+        T_top_CZ = 1
+        rho_top_CZ = 1
+    else:
+        T_bot_CZ = 1
+        rho_bot_CZ = 1
+        T_top_CZ = T_bot_CZ*np.exp(-nrho/m_ad)
+        rho_top_CZ = rho_bot_CZ*np.exp(-nrho)
     grad_ad = (gamma-1)/gamma
 
     L_cz = (1/T_ad_z)*(np.exp(-nrho/m_ad) - 1)
@@ -348,7 +354,7 @@ def run_cartesian_instability(args):
     logger.info("heating timescale: {:8.3e}".format(t_heat))
     logger.info("T_ad_z, T_rad_z: {:8.3e}, {:8.3e}".format(T_ad_z, T_rad_z))
 
-    Re0   *= t_heat
+    Re0   /= (L_conv/t_heat) #adjust to freefall velocity not sound speed.
     Pe0   = Pr*Re0
     κ     = Cp/Pe0
     μ     = 1/Re0
