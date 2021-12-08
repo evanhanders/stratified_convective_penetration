@@ -40,6 +40,7 @@ Options:
     --plot_structure           If flagged, make some output plots of the structure (good on 1 core)
     --up                       If flagged, study convection penetrating upwards
 """
+import queue
 import logging
 import os
 import sys
@@ -423,6 +424,9 @@ def run_cartesian_instability(args):
 
     s0_z['g'] = ((1/gamma)*(T0_z/T0 - (gamma-1)*grad_ln_rho0)).evaluate()['g']
 
+
+    L_schwarzschild = L_cz #fix later
+
     if args['--plot_structure']:
         import matplotlib.pyplot as plt
         fig = plt.figure()
@@ -534,9 +538,35 @@ def run_cartesian_instability(args):
     flow.add_property("Pe", name='Pe')
     flow.add_property("Ma", name='Ma')
 
+    #delta_0.5 measures
+    measure_cadence = max_dt
+    departure_fracs = np.array([0.1, 0.5, 0.9])
+    deltas = np.array([0, 0, 0])
+    delta_queues = []
+    for f in departure_fracs:
+        delta_queues.append((queue.Queue(maxsize=int(100/max_dt))))
+    dt_queue = queue.Queue(maxsize=int(100/max_dt))
+
+    dense_scales = int(2048/nz)
+    dense_x_scales = 1
+    dense_y_scales = 1
+    dense_tuple = (dense_x_scales, dense_scales)
+    z_dense = domain.grid(-1, scales=dense_scales).flatten()
+    cz_bools = np.zeros_like(z_dense, dtype=bool)
+    dense_handler = solver.evaluator.add_dictionary_handler(sim_dt=measure_cadence, iter=np.inf)
+    dense_handler.add_task("plane_avg(grad_ad - grad)", name="grad_s", scales=dense_tuple, layout='g')
+    dense_handler.add_task("plane_avg(grad_ad - grad_rad)", name="delta_R", scales=dense_tuple, layout='g')
+
     Hermitian_cadence = 100
 
     def main_loop(dt):
+        if args['--up']:
+            departure_func = np.max
+            mpi_departure_func = MPI.MAX
+        else:
+            departure_func = np.min
+            mpi_departure_func = MPI.MIN
+        last_measure = solver.sim_time
         Re_avg = 0
         try:
             logger.info('Starting loop')
@@ -557,9 +587,26 @@ def run_cartesian_instability(args):
                     log_string += 'Time: {:8.3e} heat ({:8.3e} therm), dt: {:8.3e}, dt/t_h: {:8.3e}, '.format(solver.sim_time/t_heat, solver.sim_time/Pe0,  dt, dt/t_heat)
                     log_string += 'Pe: {:8.3e}/{:8.3e}, '.format(flow.grid_average('Pe'), flow.max('Pe'))
                     log_string += 'Ma: {:8.3e}/{:8.3e}, '.format(flow.grid_average('Ma'), flow.max('Ma'))
+                    for f, d in zip(departure_fracs, deltas):
+                        log_string += "d_{}/Lz: {:.4f}, ".format(f, d/Lz)
                     logger.info(log_string)
 
                 dt = CFL.compute_dt()
+
+                if solver.sim_time > last_measure + measure_cadence:
+                    grad_s = dense_handler['grad_s']['g'][0,:]
+                    delta_R = dense_handler['delta_R']['g'][0,:]
+                    for i, departure_frac in enumerate(departure_fracs):
+                        cz_bools[:] = (grad_s > 0)*(delta_R > 0)*(grad_s < delta_R/2)
+                        good_zs = z_dense[cz_bools]
+                        if len(good_zs) == 0:
+                            good_zs = [L_schwarzschild,]
+                        deltas[i] = reducer.reduce_scalar(departure_func(good_zs), mpi_departure_func)
+                        if delta_queues[i].full(): delta_queues[i].get()
+                        delta_queues[i].put(deltas[i])
+                    if dt_queue.full(): dt_queue.get()
+                    dt_queue.put(solver.sim_time - last_measure)
+                    last_measure = solver.sim_time
                     
         except:
             raise
