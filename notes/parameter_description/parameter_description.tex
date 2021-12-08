@@ -91,23 +91,23 @@ To start with, let's make some definitions.
         where we have assumed that hydrostatic equilibrium applies, $T\grad \ln \rho = -g\hat{z} / R - \grad T$ and $\grad T_{\rm{ad}} = -g/c_P\hat{z}$ and $c_P = R \gamma/(\gamma-1)$.
         So
         \begin{equation}
-            \mS = \left(\frac{\rho L^2}{Q}\right)^{2/3}\frac{g }{T}\left(\grad T_{\rm{RZ}} - \grad T_{\rm{ad}}\right)
-                = \left(\frac{\rho L^2}{Q}\right)^{2/3}\frac{g \grad T_{\rm{ad}}}{T}\left(\frac{1}{1 + [\mathcal{P}(1 + \mu)]^{-1}} - 1\right).
+            \mS = \left(\frac{\rho L^2}{Q}\right)^{2/3}\frac{g }{T_{\rm{RZ}}}\left(\grad T_{\rm{RZ}} - \grad T_{\rm{ad}}\right)
+                = \left(\frac{\rho L^2}{Q}\right)^{2/3}\frac{g \grad T_{\rm{ad}}}{T_{\rm{RZ}}}\left(\frac{1}{1 + [\mathcal{P}(1 + \mu)]^{-1}} - 1\right).
         \end{equation}
-        Defining the adiabatic gradient $\grad_{\rm{ad}} = (d\ln T / d\ln P)|_{\mathcal{S}}$, and then $\grad T_{\rm{ad}} = \grad_{\rm{ad}} h^{-1} T$ where $h = (d\ln P/d\ln z)^{-1}$ is the pressure scale height, and simplifying the parenthetical, we get
+        Defining the adiabatic gradient $\grad_{\rm{ad}} = (d\ln T / d\ln P)|_{\mathcal{S}}$, and then $\grad T_{\rm{ad}} = \grad_{\rm{ad}} h_{\rm{RZ}}^{-1} T_{\rm{RZ}}$ where $h = (d\ln P/d\ln z)^{-1}$ is the pressure scale height, and simplifying the parenthetical, we get
         \begin{equation}
             \boxed{
                 \mS = \grad_{\rm{ad}}\frac{ (g \tau_{\rm{conv}}^2) / h}{1 + \mathcal{P}(1 + \mu)}
             }.
         \end{equation}
-        Going further, in hydrostatic equilibrium, $g h = P/\rho = c_s^2 / \gamma$, and if we define the convective velocity $u_{\rm{conv}} = L/\tau_{\rm{conv}}$, we find
+        Going further, in hydrostatic equilibrium, $g h_{\rm{RZ}} = (P/\rho)_{\rm{RZ}} = c_{s,\rm{RZ}}^2 / \gamma$, and if we define the convective velocity $u_{\rm{conv}} = L/\tau_{\rm{conv}}$, we find
         \begin{equation}
-            \frac{g \tau^2}{h} = \frac{1}{\gamma}\frac{c_s^2}{u_{\rm{conv}}^2}\left(\frac{L}{h}\right)^2.
+            \frac{g \tau^2}{h_{\rm{RZ}}} = \frac{1}{\gamma}\frac{c_{s,\rm{RZ}}^2}{u_{\rm{conv}}^2}\left(\frac{L}{h_{\rm{RZ}}}\right)^2.
         \end{equation}
-        Defining the mach number of convection $\mathcal{M} = u_{\rm{conv}}/c_s$, we find
+        Defining the mach number of convection $\mathcal{M} = u_{\rm{conv}}/c_{s,\rm{RZ}}$ (evaluating `RZ' terms right at the radiative-convective boundary), we find
         \begin{equation}
             \boxed{
-                \mS = \mathcal{M}^{-2}\frac{\grad_{\rm{ad}}}{\gamma}\left(\frac{L}{h}\right)^2\left(\frac{1}{1 + \mathcal{P}(1 + \mu)}\right)}.
+                \mS = \mathcal{M}^{-2}\frac{\grad_{\rm{ad}}}{\gamma}\left(\frac{L}{h_{\rm{RZ}}}\right)^2\left(\frac{1}{1 + \mathcal{P}(1 + \mu)}\right)}.
         \end{equation}
 \end{enumerate}
 

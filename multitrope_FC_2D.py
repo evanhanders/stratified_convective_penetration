@@ -324,17 +324,18 @@ def run_cartesian_instability(args):
 
     L_cz = (1/T_ad_z)*(np.exp(-nrho/m_ad) - 1)
     if args['--up']:
+        h_nondim = R*(T_top_CZ) / g
         if nrho <= 1:
             Lz    = 2*L_cz
         else:
             Lz    = 1.5*L_cz
     else:
+        h_nondim = R*(T_bot_CZ) / g
         Lz    = 2*L_cz
     Lx    = aspect * L_cz
     Ly    = Lx
     delta = 0.1*L_cz
     delta_heat = 0.05*L_cz
-    h_nondim = R*(T_bot_CZ) / g
 
     T_rad_z = T_ad_z*(1 + (P*(1+mu))**(-1))**(-1) #This is eqn 3 in derivation pdf
     Ma2 = (1/S)*(1/(P*(1+mu))) * (grad_ad/gamma) * (L_cz/h_nondim)**2 #This is eqn 10 in derivation pdf
