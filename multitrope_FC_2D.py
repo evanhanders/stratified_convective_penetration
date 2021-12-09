@@ -316,6 +316,7 @@ def run_cartesian_instability(args):
     m_ad = 1/(gamma-1)
     g = 1/(m_ad+1)
     T_ad_z = -g/Cp
+    
 
     if args['--up']:
         T_bot_CZ = np.exp(nrho/m_ad)
@@ -329,7 +330,7 @@ def run_cartesian_instability(args):
         rho_top_CZ = rho_bot_CZ*np.exp(-nrho)
     grad_ad = (gamma-1)/gamma
 
-    L_cz = (1/T_ad_z)*(np.exp(-nrho/m_ad) - 1)
+    L_cz = ((T_top_CZ - T_bot_CZ)/T_ad_z)
     if args['--up']:
         h_nondim = R*(T_top_CZ) / g
         if nrho <= 1:
@@ -354,7 +355,7 @@ def run_cartesian_instability(args):
     logger.info("heating timescale: {:8.3e}".format(t_heat))
     logger.info("T_ad_z, T_rad_z: {:8.3e}, {:8.3e}".format(T_ad_z, T_rad_z))
 
-    Re0   /= (L_conv/t_heat) #adjust to freefall velocity not sound speed.
+    Re0   /= (L_cz/t_heat) #adjust to freefall velocity not sound speed.
     Pe0   = Pr*Re0
     κ     = Cp/Pe0
     μ     = 1/Re0
@@ -409,8 +410,9 @@ def run_cartesian_instability(args):
         T0_z.antidifferentiate('z', ('left', T_bot_CZ), out=T0)
     else:
         T0_z.antidifferentiate('z', ('right', T_top_CZ), out=T0)
-
-    grad_ln_rho0['g'] = (-g - R*T0_z['g'])/(R*T0['g'])
+    
+    grad_ln_T0 = (T0_z/T0).evaluate()
+    grad_ln_rho0['g'] = (-g/(R*T0) - grad_ln_T0).evaluate()['g']
     if args['--up']:
         grad_ln_rho0.antidifferentiate('z', ('left', np.log(rho_bot_CZ)), out=ln_rho0)
     else:
@@ -433,6 +435,7 @@ def run_cartesian_instability(args):
 
     grad_rad = (flux/(R*k0*g)).evaluate()
     grad_ad = (gamma-1)/gamma
+    grad_init = (grad_ln_T0/(grad_ln_T0 + grad_ln_rho0)).evaluate()
 
 
 
@@ -570,6 +573,7 @@ def run_cartesian_instability(args):
 
         plt.axhline(grad_ad, c='k', label='grad_ad')
         plt.plot(z_de[0,:], grad_rad['g'][0,:], label='grad_rad')
+        plt.plot(z_de[0,:], grad_init['g'][0,:], label='grad_init', c='orange')
         plt.axvline(L_schwarzschild, c='blue', label='L_schwarzschild')
         plt.legend()
         fig.savefig('{}/grads.png'.format(data_dir), dpi=300, bbox_inches='tight')
