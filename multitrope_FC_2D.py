@@ -186,6 +186,7 @@ def set_subs(problem):
     problem.substitutions['s0']        = '(Cv*log(T0) - ln_rho0)'
     problem.substitutions['dz_lnT']    = '(T_z/T)'
     problem.substitutions['dz_lnP']    = '(dz_lnT + grad_ln_rho0 + dz(ln_rho1))'
+    problem.substitutions['bruntN2']   = 'g*dz(s0+s1)/Cp'
 
     problem.substitutions['Re'] = '(vel_rms*Lz/ν)'
     problem.substitutions['Pe'] = '(vel_rms*Lz/χ)'
@@ -251,6 +252,7 @@ def initialize_output(solver, data_dir, mode='overwrite', output_dt=2, iter=np.i
     profiles.add_task("plane_avg(w)", name='w')
     profiles.add_task("plane_avg(vel_rms)", name='vel_rms')
     profiles.add_task("plane_avg(vel_rms2)", name='vel_rms2')
+    profiles.add_task("plane_avg(bruntN2)", name='bruntN2')
     profiles.add_task("plane_avg(KE)", name='KE')
     profiles.add_task("plane_avg(sqrt((v*ωz - w*ωy)**2 + (u*ωy - v*ωx)**2 + (w*ωx - u*ωz)**2))", name='advection')
     profiles.add_task("plane_avg(enstrophy)", name="enstrophy")
