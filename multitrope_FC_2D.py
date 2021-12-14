@@ -326,13 +326,13 @@ def run_cartesian_instability(args):
 
     L_cz = ((T_top_CZ - T_bot_CZ)/T_ad_z)
     h_nondim = R*(T_top_CZ) / g
-    if args['--up'] and nrho <= 1:
+    if args['--up'] and nrho > 1:
         Lz = 1.5*L_cz
     else:
         Lz    = 2*L_cz
     Lx    = aspect * L_cz
     Ly    = Lx
-    delta = 0.1*L_cz
+    delta = 0.05*L_cz
     delta_heat = 0.05*L_cz
 
     T_rad_z = T_ad_z*(1 + (P*(1+mu))**(-1))**(-1) #This is eqn 3 in derivation pdf
@@ -346,10 +346,23 @@ def run_cartesian_instability(args):
     F_BC  = mu*F_conv
     k_cz = -F_BC/T_ad_z
     k_rz = -(F_BC + F_conv)/T_rad_z
+    k_ad = -(F_BC + F_conv)/T_ad_z
 
+    #try to ensure k = k_ad at edge of CZ.
+    delta_k = k_rz - k_cz
+    frac_k = (k_ad - k_cz) / delta_k
+    delta_z_k = 0
+    for i in np.linspace(-2, 2, 100):
+        if (erf(i) + 1)/2 > frac_k:
+            delta_z_k = i
+            break
+    if args['--up']:
+        z_k_transition = L_cz - delta*delta_z_k
+    else:
+        z_k_transition = (Lz - L_cz) + delta*delta_z_k
 
     u_ff  = (F_conv)**(1/3)
-    Re0   /= u_ff
+    Re0   /= (u_ff * Lz)
     Pe0   = Pr*Re0
     κ     = Cp/Pe0
     μ     = 1/Re0
@@ -363,7 +376,7 @@ def run_cartesian_instability(args):
     #Adjust to account for expected velocities. and larger m = 0 diffusivities.
     logger.info("Running polytrope with the following parameters:")
     logger.info("   Re = {:.3e}, Pr = {:.2g}, resolution = {}x{}, aspect = {}".format(Re0, Pr, nx, nz, aspect))
-    logger.info("   F_conv = {:.3e}, κ = {:.3e}, μ = {:.3e}, k_rz = {:.3e}, k_cz = {:.3e}".format(F_conv, κ, μ, k_rz, k_cz))
+    logger.info("   F_conv = {:.3e}, κ = {:.3e}, μ = {:.3e}, k_rz = {:.3e}, k_ad = {:.3e}, k_cz = {:.3e}".format(F_conv, κ, μ, k_rz, k_ad, k_cz))
 
     
     ###########################################################################################################3
@@ -418,12 +431,12 @@ def run_cartesian_instability(args):
     if args['--up']:
         Q_func = lambda z: zero_to_one(z, 0.1*L_cz, delta_heat)*one_to_zero(z, 0.3*L_cz, delta_heat)
         Q['g'] = Q_mag*Q_func(z_de)
-        k0['g'] = k_rz + one_to_zero(z_de, L_cz, delta)*(k_cz - k_rz)
+        k0['g'] = k_rz + one_to_zero(z_de, z_k_transition, delta)*(k_cz - k_rz)
         flux = Q.antidifferentiate('z', ('left', F_BC))
     else:
         Q_func = lambda z: zero_to_one(z, 0.85*Lz, delta_heat)*one_to_zero(z, 0.95*Lz, delta_heat)
         Q['g'] = -Q_mag*Q_func(z_de)
-        k0['g'] = k_rz + zero_to_one(z_de, 0.5*Lz, delta)*(k_cz - k_rz)
+        k0['g'] = k_rz + zero_to_one(z_de, z_k_transition, delta)*(k_cz - k_rz)
         flux = Q.antidifferentiate('z', ('right', F_BC))
 
     s0_z['g'] = ((1/gamma)*(T0_z/T0 - (gamma-1)*grad_ln_rho0)).evaluate()['g']
