@@ -182,8 +182,8 @@ def set_subs(problem):
 
     problem.substitutions['T']         = '(T0 + T1)'
     problem.substitutions['T_z']       = '(T0_z + T1_z)'
-    problem.substitutions['s1']        = '(Cv*log(1+T1/T0) - ln_rho1)'
-    problem.substitutions['s0']        = '(Cv*log(T0) - ln_rho0)'
+    problem.substitutions['s1']        = '(Cv*log(1+T1/T0) - R*ln_rho1)'
+    problem.substitutions['s0']        = '(Cv*log(T0) - R*ln_rho0)'
     problem.substitutions['dz_lnT']    = '(T_z/T)'
     problem.substitutions['dz_lnP']    = '(dz_lnT + grad_ln_rho0 + dz(ln_rho1))'
     problem.substitutions['bruntN2']   = 'g*dz(s0+s1)/Cp'
@@ -334,17 +334,33 @@ def run_cartesian_instability(args):
         Lz    = 2*L_cz
     Lx    = aspect * L_cz
     Ly    = Lx
+    off_heat = 0.1*L_cz
+    L_heat = 0.2*L_cz
     delta = 0.05*L_cz
     delta_heat = 0.05*L_cz
 
     T_rad_z = T_ad_z*(1 + (P*(1+mu))**(-1))**(-1) #This is eqn 3 in derivation pdf
-    Ma2 = (1/S)*(1/(P*(1+mu)))# * (grad_ad/gamma) * (L_cz/h_nondim)**2 #This is eqn 10 in derivation pdf
+    if args['--up']:
+        grad_s_rad = (Cp*T_rad_z + g)/T_top_CZ
+    else:
+        grad_s_rad = (Cp*T_rad_z + g)/T_bot_CZ
+    N2_rad = (g/Cp)*grad_s_rad
 
-    #Q_mag = rho L^2 / tau_conv^3 = rho_heat * (R T0)^3/2 Ma^{3} / L_cz 
-    #Q in eqns is in units of [energy/time]. Want same [energy/time] for upflow and downflow.
-    Q_mag = Ma2**(3/2)/L_cz#rho_bot_CZ*Ma2**(3/2) * (R * T_bot_CZ)**(3/2) / L_cz
+    #f_conv^2 = u_ff^2 / L_cz^2
+    # u_ff = (F_conv/rho)^(1/3)
+    # F_conv = Q_mag * delta_heat
+    F_conv = L_cz**3 * (N2_rad/S)**(3/2)
+    if args['--up']:
+        F_conv *= rho_top_CZ
+        u_ff  = (F_conv/rho_top_CZ)**(1/3)
+        Ma2 = u_ff**2 /T_top_CZ
+    else:
+        F_conv *= rho_bot_CZ
+        u_ff  = (F_conv/rho_bot_CZ)**(1/3)
+        Ma2 = u_ff**2 /T_bot_CZ
+    freq_conv = u_ff / L_cz
+    Q_mag = F_conv / L_heat
 
-    F_conv = Q_mag*0.2*L_cz
     F_BC  = mu*F_conv
     k_cz = -F_BC/T_ad_z
     k_rz = -(F_BC + F_conv)/T_rad_z
@@ -363,22 +379,20 @@ def run_cartesian_instability(args):
     else:
         z_k_transition = (Lz - L_cz) + delta*delta_z_k
 
-    u_ff  = (F_conv)**(1/3)
     Re0   /= (u_ff * Lz)
     Pe0   = Pr*Re0
     κ     = Cp/Pe0
     μ     = 1/Re0
 
-    t_heat = L_cz/u_ff#(rho_bot_CZ*L_cz**2/Q_mag)**(1/3)
+    t_heat = 1/freq_conv
     logger.info("heating timescale: {:8.3e}".format(t_heat))
     logger.info("T_ad_z, T_rad_z: {:8.3e}, {:8.3e}".format(T_ad_z, T_rad_z))
-
-
 
     #Adjust to account for expected velocities. and larger m = 0 diffusivities.
     logger.info("Running polytrope with the following parameters:")
     logger.info("   Re = {:.3e}, Pr = {:.2g}, resolution = {}x{}, aspect = {}".format(Re0, Pr, nx, nz, aspect))
     logger.info("   F_conv = {:.3e}, κ = {:.3e}, μ = {:.3e}, k_rz = {:.3e}, k_ad = {:.3e}, k_cz = {:.3e}".format(F_conv, κ, μ, k_rz, k_ad, k_cz))
+    logger.info("   Estimated S = {:.3e}".format(N2_rad/freq_conv**2))
 
     
     ###########################################################################################################3
@@ -431,12 +445,12 @@ def run_cartesian_instability(args):
     rho0['g'] = np.exp(ln_rho0['g'])
 
     if args['--up']:
-        Q_func = lambda z: zero_to_one(z, 0.1*L_cz, delta_heat)*one_to_zero(z, 0.3*L_cz, delta_heat)
+        Q_func = lambda z: zero_to_one(z, off_heat, delta_heat)*one_to_zero(z, off_heat+L_heat, delta_heat)
         Q['g'] = Q_mag*Q_func(z_de)
         k0['g'] = k_rz + one_to_zero(z_de, z_k_transition, delta)*(k_cz - k_rz)
         flux = Q.antidifferentiate('z', ('left', F_BC))
     else:
-        Q_func = lambda z: zero_to_one(z, 0.85*Lz, delta_heat)*one_to_zero(z, 0.95*Lz, delta_heat)
+        Q_func = lambda z: zero_to_one(z, Lz-off_heat-L_heat, delta_heat)*one_to_zero(z, Lz-off_heat, delta_heat)
         Q['g'] = -Q_mag*Q_func(z_de)
         k0['g'] = k_rz + zero_to_one(z_de, z_k_transition, delta)*(k_cz - k_rz)
         flux = Q.antidifferentiate('z', ('right', F_BC))
