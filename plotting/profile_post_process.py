@@ -75,10 +75,11 @@ z_dense = domain.grid(0, scales=dense_scales)
 rolled_reader = SingleTypeReader(root_dir, 'profiles', fig_name, roll_writes=50, start_file=start_file, n_files=n_files, distribution='even-write')
 MPI.COMM_WORLD.barrier()
 readerOne = SingleTypeReader(root_dir, 'profiles', fig_name, start_file=start_file, n_files=n_files, distribution='single', global_comm=MPI.COMM_SELF)
-fig = plt.figure(figsize=(8,4))
-ax1 = fig.add_subplot(2,1,1)
-ax2 = fig.add_subplot(2,1,2)
-axs = [ax1, ax2]
+fig = plt.figure(figsize=(8,6))
+ax1 = fig.add_subplot(3,1,1)
+ax2 = fig.add_subplot(3,1,2)
+ax3 = fig.add_subplot(3,1,3)
+axs = [ax1, ax2, ax3]
 
 data_cube = []
 
@@ -96,7 +97,7 @@ dedalus_fields = [grad_field, grad_integ_field, grad_ad_field, grad_rad_field, g
 tasks, first_tasks = OrderedDict(), OrderedDict()
 
 bases_names = ['z',]
-fields = ['grad', 'grad_rad', 'F_tot', 'F_conv', 'F_cond']
+fields = ['grad', 'grad_rad', 'F_tot', 'F_conv', 'F_cond', 'Roxburgh1_full', 'Roxburgh2']
 first_fields = ['grad_rad', 'grad_ad', 'flux']
 if not rolled_reader.idle:
     while readerOne.writes_remain():
@@ -136,6 +137,9 @@ if not rolled_reader.idle:
         F_tot  = tasks['F_tot']
         grad   = tasks['grad']
         grad_rad = tasks['grad_rad']
+        roxburgh_flux = tasks['Roxburgh1']
+        roxburgh_flux_full = tasks['Roxburgh1_full']
+        roxburgh_diss = tasks['Roxburgh2']
 
         ax1.plot(z, grad_ad_init[0,:], c='k', label=r'$\nabla_{\rm{ad}}$')
         ax1.plot(z, grad_rad_init[0,:], c='grey', label=r'$\nabla_{\rm{rad,0}}$')
@@ -152,6 +156,14 @@ if not rolled_reader.idle:
         ax2.plot(z, F_cond[0,:], label=r'$F_{\rm{cond}}$', c='green')
         ax2.legend(loc='upper right')
         ax2.set_ylabel('Flux')
+
+        ax3.axhline(0, c='k', lw=0.5)
+        ax3.plot(z, roxburgh_flux[0,:], label=r'constraint (flux)', c='green')
+        ax3.plot(z, roxburgh_flux_full[0,:], label=r'constraint (flux, full)', c='green', ls='--')
+        ax3.plot(z, roxburgh_diss[0,:], label=r'constraint (dissipation)', c='indigo')
+        ax3.legend()
+        ax3.set_ylabel('Roxburgh')
+
 
         for ax in axs:
             ax.set_xlabel('z')

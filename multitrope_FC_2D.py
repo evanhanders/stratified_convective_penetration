@@ -142,10 +142,10 @@ def set_equations(problem):
                    (not(up), "right(T1_z) = 0", "True"),
                    (up, " left(T1_z) = 0", "True"),
                    (up, "right(T1) = 0", "True"),
-                   (True, " left(u) = 0", "True"),
-                   (True, "right(u) = 0", "True"),
-#                   (True, " left(ωy) = 0", "True"),
-#                   (True, "right(ωy) = 0", "True"),
+#                   (True, " left(u) = 0", "True"),
+#                   (True, "right(u) = 0", "True"),
+                   (True, " left(σxz) = 0", "True"),
+                   (True, "right(σxz) = 0", "True"),
                    (True, " left(w) = 0", "True"),
                    (True, "right(w) = 0", "True"),
                  )
@@ -229,6 +229,10 @@ def set_subs(problem):
     problem.substitutions['F_conv'] = '( F_enth + F_KE + F_PE + F_visc )'
     problem.substitutions['F_tot']  = '( F_cond + F_conv )'
 
+    problem.substitutions['Roxburgh1'] = '(-F_conv * T_z / T**2)'
+    problem.substitutions['Roxburgh1_full'] = '((-F_conv * T_z + -k0*dx(T)**2) / T**2)'
+    problem.substitutions['Roxburgh2'] = '(rho_full * Cv * visc_heat / T)'
+
     return problem
 
 def initialize_output(solver, data_dir, mode='overwrite', output_dt=2, iter=np.inf):
@@ -246,6 +250,7 @@ def initialize_output(solver, data_dir, mode='overwrite', output_dt=2, iter=np.i
     profiles.add_task("plane_avg(sqrt((s1 - plane_avg(s1))**2))", name='s1_fluc')
     profiles.add_task("plane_avg(dz(s1))", name='s1_z')
     profiles.add_task("plane_avg(T_z - T_ad_z)", name='grad_T_superad')
+    profiles.add_task("plane_avg(T_z)", name='grad_T')
     profiles.add_task("plane_avg(grad_ln_rho0 + dz(ln_rho1))", name='dz_lnrho')
     profiles.add_task("plane_avg(T1_z)", name='T1_z')
     profiles.add_task("plane_avg(u)", name='u')
@@ -267,6 +272,10 @@ def initialize_output(solver, data_dir, mode='overwrite', output_dt=2, iter=np.i
     profiles.add_task("plane_avg(F_conv)", name="F_conv")
     profiles.add_task("plane_avg(F_tot)", name="F_tot")
     profiles.add_task("plane_avg(flux)", name="flux")
+    profiles.add_task("plane_avg(Roxburgh1)", name="Roxburgh1")
+    profiles.add_task("plane_avg(Roxburgh1_full)", name="Roxburgh1_full")
+    profiles.add_task("plane_avg(Roxburgh2)", name="Roxburgh2")
+
     analysis_tasks['profiles'] = profiles
 
     scalars = solver.evaluator.add_file_handler(data_dir+'scalars', sim_dt=output_dt*5, max_writes=np.inf, mode=mode)
