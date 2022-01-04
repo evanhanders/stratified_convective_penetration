@@ -1,0 +1,154 @@
+\documentclass[onecolumn, amsmath, amsfonts, amssymb]{aastex62}
+\usepackage{mathtools}
+\usepackage{natbib}
+\usepackage{bm}
+\newcommand{\vdag}{(v)^\dagger}
+\newcommand\aastex{AAS\TeX}
+\newcommand\latex{La\TeX}
+
+
+\newcommand{\Div}[1]{\ensuremath{\nabla\cdot\left( #1\right)}}
+\newcommand{\DivU}{\ensuremath{\nabla\cdot\bm{u}}}
+\newcommand{\angles}[1]{\ensuremath{\left\langle #1 \right\rangle}}
+\newcommand{\KS}[1]{\ensuremath{\text{KS}(#1)}}
+\newcommand{\KSstat}[1]{\ensuremath{\overline{\text{KS}(#1)}}}
+\newcommand{\grad}{\ensuremath{\nabla}}
+\newcommand{\RB}{Rayleigh-B\'{e}nard }
+\newcommand{\stressT}{\ensuremath{\bm{\bar{\bar{\Pi}}}}}
+\newcommand{\lilstressT}{\ensuremath{\bm{\bar{\bar{\sigma}}}}}
+\newcommand{\nrho}{\ensuremath{n_{\rho}}}
+\newcommand{\approptoinn}[2]{\mathrel{\vcenter{
+	\offinterlineskip\halign{\hfil$##$\cr
+	#1\propto\cr\noalign{\kern2pt}#1\sim\cr\noalign{\kern-2pt}}}}}
+
+\newcommand{\appropto}{\mathpalette\approptoinn\relax}
+\newcommand{\mR}{\ensuremath{\mathcal{R}}}
+\newcommand{\mP}{\ensuremath{\mathcal{P}}}
+\newcommand{\mS}{\ensuremath{\mathcal{S}}}
+\newcommand{\bu}{\ensuremath{\bm{u}}}
+\newcommand{\bV}{\ensuremath{\bm{\omega}}}
+\newcommand{\cross}[2]{\ensuremath{#1 \times #2}}
+\newcommand{\dotp}[2]{\ensuremath{#1 \cdot #2}}
+\newcommand{\curl}[1]{\ensuremath{\cross{\grad}{\left(#1\right)}}}
+\newcommand{\pderiv}[2]{\ensuremath{\frac{\partial #1}{\partial #2}}}
+\newcommand{\xHe}{\ensuremath{X_{\text{He}}}}
+\newcommand{\FconvCZ}{\ensuremath{F_{\rm{conv}}^{\rm{CZ}}}}
+\newcommand{\FconvPZ}{\ensuremath{F_{\rm{conv}}^{\rm{PZ}}}}
+
+\renewcommand{\bar}[1]{\ensuremath{\overline{#1}}}
+\renewcommand{\vec}[1]{\ensuremath{\mathbf{#1}}}
+\renewcommand{\dot}{\ensuremath{\cdot}}
+
+\usepackage{color}
+\newcommand{\gv}[1]{{\color{blue} #1}}
+
+\begin{document}
+\title{Derivation of Roxburgh's Integral Constraint}
+
+\section{Navier-Stokes Equations \& Energy Equations}
+\citet{roxburgh_1989} writes the equations of fluid dynamics as
+\begin{align}
+    &\rho \frac{\partial \vec{u}}{\partial t} + \rho \vec{u}\dot\grad\vec{u}
+        = -\grad P + \rho \vec{g} + \frac{\partial \eta_{ij}}{\partial x_j}, 
+        \label{eqn:momentum}\\
+    &\frac{\partial \rho}{\partial t} + \grad\dot(\rho \vec{u}) = 0, 
+        \label{eqn:continuity}\\
+    &\rho T \frac{\partial s}{\partial t} + \rho T \vec{u}\dot\grad s
+        = -\grad\dot (\vec{F}_{\rm{rad}}) + \rho \epsilon + \eta_{ij}\frac{\partial u_i}{\partial x_j},
+        \label{eqn:energy}
+\end{align}
+with the viscous stress tensor defined as
+\begin{equation}
+    \eta_{ij} = \mu\left(\frac{\partial u_i}{\partial x_j} + \frac{\partial u_j}{\partial x_i} - \frac{2}{3}\delta_{ij} \grad\dot\vec{u}\right).
+\end{equation}
+Here, $\rho$ is density, $T$ is temperature, $P$ is pressure, $s$ is specific entropy, $\vec{u}$ is velocity, $\mu$ is the dynamic viscosity, $\epsilon$ is energy generation per unit mass, $\vec{F}_{\rm{rad}}$ is radiative flux, and $\vec{g}$ is gravity.
+It is convenient to define
+\begin{equation}
+    \grad\dot\vec{F}_{\rm{tot}} = \rho \epsilon
+    \qquad\rightarrow\qquad
+    \vec{F}_{\mathrm{tot}} = \hat{z}\left(\int \rho \epsilon dz + F_{\rm{bot}}\right).
+\end{equation}
+Here, $\vec{F}_{\rm{tot}}$ is the total energy flux going through the system and $F_{\rm{bot}}$ is the vertical energy flux imposed at the bottom boundary of the system.
+In the notation of \citet{roxburgh_1989}, $\vec{F}_{\rm{tot}} = \vec{\Gamma}$.
+We will also define the viscous dissipation per unit volume
+\begin{equation}
+    \Phi = \eta_{ij}\frac{\partial u_i}{\partial x_j} \geq 0.
+\end{equation}
+Upon using the continuity Eqn.~\ref{eqn:continuity} on the energy Eqn.~\ref{eqn:energy}, we get
+\begin{equation}
+    T\frac{\partial \rho s}{\partial t} + T\grad\dot(\rho s \vec{u}) = \grad\dot(\vec{F}_{\mathrm{tot}} - \vec{F}_{\mathrm{rad}}) + \Phi.
+    \label{eqn:Tds}
+\end{equation}
+Noting that $dE = T\,ds - p\,dV$, where $E$ is the internal energy and $V = 1/\rho$, we can recast the LHS of Eqn.~\ref{eqn:Tds} (using continuity a couple times) as
+\begin{equation}
+    \frac{\partial \rho E}{\partial t} + \grad\dot(\rho E\vec{u} ) + P\grad\dot\vec{u} = \grad\dot(\vec{F}_{\mathrm{tot}} - \vec{F}_{\mathrm{rad}}) + \Phi.
+    \label{eqn:t_energy}
+\end{equation}
+Likewise dotting $\vec{u}$ into the momentum Eqn.~\ref{eqn:momentum} and using continiuity we get
+\begin{equation}
+    \frac{\partial \mathcal{K}}{\partial t} + \grad\dot(\vec{u}[\mathcal{K} + P] - \vec{u}\dot\bar{\bar{\vec{\eta}}}) = P\grad\dot\vec{u} + \rho \vec{u}\dot\vec{g} - \Phi,
+    \label{eqn:k_energy}
+\end{equation}
+where $\mathcal{K} = \rho \vec{u}\dot\vec{u} / 2$ is the kinetic energy.
+Combining Eqns.~\ref{eqn:t_energy} and \ref{eqn:k_energy}, we retrieve the full energy equation,
+\begin{equation}
+    \frac{\partial}{\partial t} (\rho E + \mathcal{K})
+    + \grad\dot (\vec{u} [\rho h + \mathcal{K}] - \vec{u}\dot\bar{\bar{\vec{\eta}}} + \vec{F}_{\mathrm{rad}} - \vec{F}_{\mathrm{tot}})
+    = \rho \vec{u}\dot\vec{g},
+    \label{eqn:energy}
+\end{equation}
+where $h = E + P/\rho$ is the enthalpy.
+The various flux terms which arise here are discussed around equation 8 of \citet{anders_brown_2017}.
+
+\newpage
+\section{Constraints}
+We will now use Eqn.~\ref{eqn:Tds} \& \ref{eqn:energy} to derive some constraints on convecting regions.
+I won't handle Eqn.~\ref{eqn:energy} too carefully here (see \citet{roxburgh_1989} eqns 11-13).
+Suffice to say that if you integrate over a convecting region $V$ with surface area $\Sigma$, and you assume statistically stationary convection and $\vec{u} = 0$ at the boundaries of the convecting region, you find
+\begin{equation}
+    \vec{F}_{\mathrm{rad}} = \vec{F}_{\mathrm{tot}} \,\,\text{on}\,\,\Sigma.
+    \label{eqn:surface_flux}
+\end{equation}
+This is the simple statement that energy is conserved, and the flux is carried radiatively if there are no convective motions.
+
+With this in mind, we examine Eqn.~\ref{eqn:Tds} in more detail.
+We divide through by $T$ and integrate over a volume $V$ to find eqn 10 in \citet{roxburgh_1989},
+\begin{equation}
+    \frac{\partial}{\partial t}\int_V \rho s\,dV = \int_V\frac{1}{T}\grad\dot(\vec{F}_{\rm{tot}} - \vec{F}_{\rm{rad}})\,dV + \int_V \frac{1}{T}\Phi\,dV.
+\end{equation}
+Note
+\begin{align*}
+\int_V\frac{1}{T}\grad\dot(\vec{F}_{\rm{tot}} - \vec{F}_{\rm{rad}})\,dV
+    &= \int_V\grad\dot\left(\frac{1}{T}[\vec{F}_{\rm{tot}} - \vec{F}_{\rm{rad}}]\right)\,dV
+     - \int_V(\vec{F}_{\rm{tot}} - \vec{F}_{\rm{rad}})\grad\frac{1}{T}\,dV \\
+    &= \int_\Sigma\frac{1}{T}(\vec{F}_{\rm{tot}} - \vec{F}_{\rm{rad}})\,dA
+    + \int_V\frac{1}{T^2}(\vec{F}_{\rm{tot}} - \vec{F}_{\rm{rad}})\dot\grad T\,dV.
+\end{align*}
+From the above constraint (Eqn.~\ref{eqn:surface_flux}), the first term is zero, and we can write
+\begin{equation}
+    \frac{\partial}{\partial t}\int_V \rho s\,dV = \int_V\frac{1}{T^2}(\vec{F}_{\rm{tot}} - \vec{F}_{\rm{rad}})\dot\grad T\,dV + \int_V \frac{1}{T}\Phi\,dV.
+\end{equation}
+In a statistically-stationary state, the first term (the time derivative) is also zero, and so we can rearrange to arrive at the general form of Roxburgh's integral constraint,
+\begin{equation}
+    \boxed{
+        -\int_V\frac{1}{T^2}(\vec{F}_{\rm{tot}} - \vec{F}_{\rm{rad}})\dot\grad T\,dV = \int_V \frac{1}{T}\Phi\,dV
+    }.
+\end{equation}
+Note that $\vec{F}_{\mathrm{tot}} - \vec{F}_{\mathrm{rad}} = \vec{F}_{\rm{conv}}$ (including all contributions to the convective flux, like enthalpy flux, kinetic energy flux, viscous flux).
+Taking a horizontal average of the constraint (and assuming that there is no net horizontal flux), we can write the constraint
+\begin{equation}
+    \overline{-\int_V\frac{1}{T}F_{\rm{conv}}\frac{\partial \ln T}{\partial z}\,dV}
+    = \overline{\int_V \frac{1}{T}\Phi\,dV}
+\end{equation}
+defining $\grad \equiv d\ln T / d\ln P$ and $h = dz / d\ln P$ we can rewrite this as
+\begin{equation}
+    \overline{-\int_V\frac{\grad}{hT}F_{\rm{conv}}\,dV}
+    = \overline{\int_V \frac{1}{T}\Phi\,dV},
+\end{equation}
+where presumably $\grad = \grad_{\rm{ad}}$, a constant, in the convection zone.
+Both $h$ and $T$ increase with depth, so these integrals are weighted in such a way that they have large contributions in the less dense, upper regions of a convection zone.
+
+
+\bibliographystyle{aasjournal}
+\bibliography{biblio}
+\end{document}
